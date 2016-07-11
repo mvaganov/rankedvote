@@ -28,10 +28,10 @@ var SimpleCache = require("simple-lru-cache"); // <-- simple cache! https://www.
 
 var gcloud = require('gcloud');
 var ds = gcloud.datastore({ projectId: config.get('GCLOUD_PROJECT') });
-var irv = require('./app/irv');
+var irv = require('./views/irv');
 
 var app = express();
-var mvaganov = require('./app/mvaganov');
+var mvaganov = require('./views/mvaganov');
 
 var MUST_HAVE_VAR_GROUP = {};
 function MUST_HAVE_VAR(varname, varGroup) {
@@ -251,7 +251,7 @@ var writeWebpageHeader = function(req, res, title, includes, codeToInsert, cb) {
     cachedHeader = new mvaganov.CachedMadlibs();
     var values = [];
     for(var k in headerVariables) { values.push(headerVariables[k]); }
-    cachedHeader.initFromFile("app/header.html", values, {keepWhitespace:true}, _writeWebpageHeader);
+    cachedHeader.initFromFile("views/header.html", values, {keepWhitespace:true}, _writeWebpageHeader);
   } else {
     _writeWebpageHeader(null);
   }
@@ -266,7 +266,7 @@ var writeWebpageFooter = function (req, res, cb) {
   };
   if(!cachedFooter) {
     cachedFooter = new mvaganov.CachedMadlibs();
-    cachedFooter.initFromFile("app/footer.html", [], null, _writeWebpageFooter);
+    cachedFooter.initFromFile("views/footer.html", [], null, _writeWebpageFooter);
   } else {
     _writeWebpageFooter(null);
   }
@@ -303,7 +303,7 @@ app.get(['/debate/:did','/debate'], function (req, res) {
       "../jsonstate.js", "../debate.js"];
       writeWebpageHeader(req, res, 'New Debate', includes, codeToInsert, callback);
     }, function writeBody(callback) {
-      mvaganov.serveFileByLine('app/debate/body.html', null, function(line) { res.write(line); }, callback);
+      mvaganov.serveFileByLine('views/debate/body.html', null, function(line) { res.write(line); }, callback);
     }, function writeFooter(callback) { writeWebpageFooter(req, res, function(){res.end(); callback(null);}); }
   ], function error(err, result){ async_waterfall_error(err, result, scope); });
 });
@@ -321,7 +321,7 @@ app.get('/debates', function(req, res) {
       var codeToInsert="var RankedVote_servedData="+ JSON.stringify(state) + ";var creatorID=\'"+scope.voter.id+"\';";
       writeWebpageHeader(req, res, 'Debates', ["../angular.min.js", "../debates.js"], codeToInsert, callback);
     }, function writeBody(callback) {
-      mvaganov.serveFileByLine('app/debates/body.html', null, function lineCallback(line) { res.write(line); }, callback);
+      mvaganov.serveFileByLine('views/debates/body.html', null, function lineCallback(line) { res.write(line); }, callback);
     }, function writeFooter(callback) { writeWebpageFooter(req, res, function(){res.end(); callback(null);}); }
   ], function error(err, result){ async_waterfall_error(err, result, scope); });
 });
@@ -338,7 +338,7 @@ app.get('/votes', function(req, res, next) {
       var codeToInsert="var RankedVote_servedData="+ JSON.stringify(state) + ";var creatorID=\'"+scope.voter.id+"\';";
       writeWebpageHeader(req, res, 'Votes', ["../angular.min.js", "../votes.js"], codeToInsert, callback);
     }, function writeBody(callback) {
-      mvaganov.serveFileByLine('app/votes/body.html', null, function(line) { res.write(line); }, callback);
+      mvaganov.serveFileByLine('views/votes/body.html', null, function(line) { res.write(line); }, callback);
     }, function writeFooter(callback) { writeWebpageFooter(req, res, function(){res.end(); callback(null);}); }
   ], function error(err, result){ async_waterfall_error(err, result, scope); });
 });
@@ -384,7 +384,7 @@ app.get(['/vote/:did','/votex/:did','/vote'], function(req, res, next) {
       var codeToInsert="var RankedVote_servedData="+ JSON.stringify(scope.debate) + ";var creatorID=\'"+scope.voter.id+"\';";
       writeWebpageHeader(req, res, 'Vote', includes, codeToInsert, callback);
     }, function writeBody(callback) {
-      mvaganov.serveFileByLine('app/'+((scope.isVotex)?'votex':'vote')+'/body.html', null, function(line) { res.write(line); }, callback);
+      mvaganov.serveFileByLine('views/'+((scope.isVotex)?'votex':'vote')+'/body.html', null, function(line) { res.write(line); }, callback);
     }, function writeFooter(callback) { writeWebpageFooter(req, res, function(){res.end(); callback(null);}); }
   ], function error(err, result){ async_waterfall_error(err, result, scope); });
 });
@@ -497,7 +497,7 @@ app.get('/result/:did', function(req, res, next) {
       var codeToInsert="var RankedVote_servedData="+JSON.stringify(scope.state)+";";
       writeWebpageHeader(req, res, 'Result', includes, codeToInsert, callback);
     }, function writeBody(callback) {
-      mvaganov.serveFileByLine('app/result/body.html', null, function(line) { res.write(line); }, callback);
+      mvaganov.serveFileByLine('views/result/body.html', null, function(line) { res.write(line); }, callback);
     }, function writeFooter(callback) { writeWebpageFooter(req, res, function(){res.end(); callback(null);}); }
   ], function error(err, result){ async_waterfall_error(err, result, scope); });
 });
@@ -573,9 +573,9 @@ app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) 
   ], function error(err, result){ async_waterfall_error(err, result, scope); });
 });
 
-app.get('/*.js', express.static('app'));
-app.get('/*.css', express.static('app'));
-app.get('/*.png', express.static('app'));
+app.get('/*.js', express.static('views'));
+app.get('/*.css', express.static('views'));
+app.get('/*.png', express.static('views'));
 
 // Redirect root
 app.get('/', function(req, res) {
