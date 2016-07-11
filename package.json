@@ -2,7 +2,7 @@
   "name": "rankedvote",
   "version": "0.0.1",
   "description": "Instant Runoff Voting tool. Node.JS applications on Google Cloud Platform",
-  "repository": "",
+  "repository": "https://github.com/mvaganov/rankedvote",
   "private": true,
   "scripts": {
     "start": "node app.js",
