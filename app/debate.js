@@ -1,4 +1,11 @@
-console.log("debate.js");
+var SCOPE;
+
+function setStyle(property, value, element_ids) {
+  for(var i=0;i<element_ids.length;++i){
+    var e = ByID(element_ids[i]);
+    e.style[property] = value;
+  }
+};
 
 angular.module('vote', ['ng-sortable'])
   .controller('voteController', ['$scope', function ($scope) {
@@ -22,23 +29,12 @@ angular.module('vote', ['ng-sortable'])
         }
       };
     }
-    // console.log($scope.state);
     // check if there is data in the cookie.
     var cookieTable = parseCookies(document.cookie);
-    //console.log(JSON.stringify(cookieTable));
     if(cookieTable.debate) {
       $scope.state = JSON.parse(cookieTable.debate);
     }
-//    writeFieldsIntoState($scope.state);
-//    loadState(window.location.href, $scope.state);
     writeStateIntoFields($scope.state, "STATE");
-    // var specialCodeInput = ByID("jsoninsert");
-    // specialCodeInput.value = JSON.stringify($scope.state, null, 2);
-    // Save JSON to queryString
-    $scope.save = function () {
-      console.log([$scope.state]);
-      saveState($scope.state);
-    };
     $scope.refresh = function(){
       var specialCodeInput = ByID("jsoninsert");
       specialCodeInput.value = JSON.stringify($scope.state, null, 2);
@@ -65,14 +61,12 @@ angular.module('vote', ['ng-sortable'])
       };
       xhr.open('post', '');
       var submisison = JSON.stringify(submissionState);
-      console.log("submitting "+submisison);
       document.cookie = "debate=" + submisison;
       xhr.send();
     };
   }]);
 var insertJSON = function() {
   var code = ByID("jsoninsert").value;
-  console.log("insert ",[code]);
   if(code) {
     var obj = JSON.parse(code);
     var copyObjectProperties = function(srcObj, destObj){

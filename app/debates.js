@@ -1,5 +1,4 @@
 var SCOPE;
-
 angular.module('vote', [])
   .controller('voteController', ['$scope', function ($scope) {
     SCOPE = $scope;
@@ -17,28 +16,12 @@ angular.module('vote', [])
         }
       }
     };
-//    $scope.state = state;
-//    loadState(window.location.href, $scope.state);
-//    writeStateIntoFields($scope.state);
-    if(RankedVote_servedData) {
-      $scope.state = RankedVote_servedData;
-    } else {
-      $scope.state = {
-        debates : [
-          {id:"0", did:"3", vid:"0", data:{rank:["0","1","2"]}, name:"test"},
-          {id:"1", did:"4", vid:"0", data:{rank:["0","1","2"]}, name:"another vote"},
-          {id:"2", did:"5", vid:"0", data:{rank:["0","1","2"]}},
-          {id:"3", did:"6", vid:"0", data:{rank:["0","1","2"]}}
-        ]
-      };
-    }
-    console.log(">>>>> "+JSON.stringify($scope.state));
+    $scope.state = RankedVote_servedData;
     var v = $scope.state.debates;
     for(var i=0;i<v.length;++i){
       if(!(v[i].name)) {
         v[i].name = v[i].did;
       }
     }
-    console.log("??? "+JSON.stringify($scope.state, null, 2));
-    console.log($scope.state.debates.length);
+    // console.log("??? "+JSON.stringify($scope.state, null, 2));
   }]);

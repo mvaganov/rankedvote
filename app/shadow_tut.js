@@ -129,7 +129,6 @@ var dragTutorial = function(choiceSource, choiceDestination, hand, demotag) {
   isRunningDragTutorial = true;
   // find the location of the choice destination, that is the destination rectangle
   var destRect = getAbsoluteBoundingRect(choiceDestination);
-  console.log(choiceSource.childNodes);
   // find the first element in choiceSource
   var i=0;
   while(!choiceSource.childNodes[i] || !choiceSource.childNodes[i].getBoundingClientRect) {i++;}

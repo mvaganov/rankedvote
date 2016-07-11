@@ -25,10 +25,7 @@ angular.module('vote', ['ngSanitize'])
     $scope.state = RankedVote_servedData;
     $scope.generated = {};
     var deserialized;
-    console.log(JSON.stringify($scope.state));
-    console.log(JSON.stringify($scope.state.info));
     for(var i=0;i<$scope.state.result.length;++i) {
-      console.log (JSON.stringify($scope.state.result[i]));
       eval("deserialized="+$scope.state.result[i].showme);
       $scope.state.result[i].showme = deserialized;
     }

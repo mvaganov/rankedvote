@@ -2,7 +2,6 @@ var SCOPE;
 
 var updateVoteCount_init = function (voteCount){
   SCOPE.state.votes=Array(voteCount);
-  console.log(voteCount);
   for(var i=0;i<voteCount;++i){
     SCOPE.state.votes[i] = JSON.parse(JSON.stringify(SCOPE.state.data));
   }  
@@ -61,61 +60,23 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
             setTimeout(function(){
               var list = ByID("userChoices");
               target = list.children[list.children.length-1];
-              console.log("bringing back ",[target])
-              errorUI(target, "required.", 2000);
             }, .01);
           }
         }
       }
     };
     $scope.updateVoteCount = updateVoteCount;
-//    $scope.state = state;
-//    loadState(window.location.href, $scope.state);
-//    writeStateIntoFields($scope.state);
-    if(RankedVote_servedData) {
-      $scope.state = RankedVote_servedData;
-    } else {
-      $scope.state = {
-        id: 0,
-        createdby: 0,
-        title: "some election",
-        data:{
-      //    imgw: "", imgh: "32px", // uncomment to set image size
-          imgdisp: "none", // set to blank to allow images
-          prompt: "If your top choice could not possibly win, your vote automatically transfers to the next ranked candidate.",
-          choices: [
-      // identifier, text, icon url
-              ["0", "Choice 0*", "0.png"],
-              ["1", "Choice 1*", "1.png"],
-              ["2", "Choice 2*", "2.png"],
-          ],
-          candidates: [
-              ["3", "Choice 3", "3.png"],
-              ["4", "Choice 4", "4.png"],
-              ["5", "Choice 5", "5.png"],
-          ],
-        }
-      };
-    }
+    $scope.state = RankedVote_servedData;
     // TODO have some smarter variable to determine what is a required choice...
     $scope.required = shallowArrayCopy($scope.state.data.choices);
-
-    console.log(">>>>> "+JSON.stringify($scope.state));
-    // if($scope.state.data.rank) {
-    //   $scope.state.rank = $scope.state.data.rank;
-    //   $scope.state.data.rank = null;
-    //   delete $scope.state.data.rank; // removes the element from the object
-    // }
 
     // cookie cached ranking (local to the device) trumps server-stored ranking (if any)
     var cookieTable = parseCookies(document.cookie);
     if(cookieTable.rank) {
-      console.log("found ranks! ");
       $scope.state.rank = JSON.parse(cookieTable.rank);
       // "rank" stores the entire vote. isolate the rank from the vote for the UI
       $scope.state.ranks = $scope.state.rank.data.ranks;
     }
-    console.log("!!! "+JSON.stringify($scope.state));
     // if this vote is in progress (cached as cookie or rank sent with data)
     if($scope.state.ranks) {
       var setupAccordingToSavedRank = function (index, r, data) {
@@ -152,12 +113,6 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
       }
     }
     // TODO randomize order of candidates, unless choice order is meant to stay unrandomized (make sure that the ranked choices are not randomized!)
-    console.log("state at init: ",[$scope.state]);
-    // // Save JSON to queryString
-    // $scope.save = function () {
-    //   console.log([$scope.state]);
-    //   saveState($scope.state);
-    // };
     $scope.submit = function() {
       var minchoices = $scope.state.data.minchoices;
       if(minchoices != null && minchoices != undefined){
@@ -218,27 +173,12 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
       };
       xhr.open('post', '');
       var submisison = JSON.stringify(submissionState);
-      console.log("submitting "+submisison);
       document.cookie = "rank=" + submisison;
       xhr.send();
-
-      // saveState($scope.state);
-      // if($scope.state.id){
-      //   var submissionCall = generateSubmissionCall($scope.state.data.gform, [
-      //     $scope.state.electionID,$scope.state.id,list]);
-      //   console.log(submissionCall);
-      //   window.location.href = submissionCall;
-      // } else {
-      //   errorUI(ByID("STATE_id"), "enter an e-mail address");
-      //   // TODO mail results to the given e-mail address
-      // }
     }
-//    %22id%22%3A%22nobody%22%2C
     if($scope.state.data.candidates.length > 0){
       dragTutorial(ByID("THEMAINLIST"), ByID("userChoices"));
     } else {
 
     }
   }]);
-
-//function init() { window.init(); }
