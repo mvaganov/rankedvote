@@ -50,7 +50,7 @@ function MUST_HAVE_VAR(varname, varGroup) {
   return result;
 }
 
-var IS_DEBUG = true;//config.get('rankedvote_debug');
+var IS_DEBUG = config.get('rankedvote_debug') == true;
 var T_VOTE = MUST_HAVE_VAR('TABLE_VOTE','db');
 var T_VOTER = MUST_HAVE_VAR('TABLE_VOTER','db');
 var T_DEBATE = MUST_HAVE_VAR('TABLE_DEBATE','db');
@@ -579,22 +579,8 @@ app.get('/*.png', express.static('app'));
 
 // Redirect root
 app.get('/', function(req, res) {
-    req.extraScope = {
-      express: express,
-      session: session,
-      passport: passport,
-      config: config,
-      app: app
-    };
-    writeWebpageHeader(req, res, 'Home', [], "", function() {
-      mvaganov.jsoNav(req,res);
-      writeWebpageFooter(req, res, function(){
-        res.end();
-      });
-    });
-  }
-//  function (req, res) { res.redirect('/vote'); }
-);
+  res.redirect('/debates');
+});
 
 var t_JSON = 'JSONscript', t_NUM = 'number', t_STR = 'string', t_UNIQUE = 'unique';
 var schemaTypeConversionToDatastore = {};
