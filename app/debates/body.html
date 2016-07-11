@@ -1,0 +1,9 @@
+<table border=0 class="maxwidth">
+    <tr ng-repeat="debate in state.debates">
+      <td><a href="../vote/{{debate.did}}">{{debate.name}}</a></td>
+      <td><a href="../result/{{debate.did}}">results</a></td>
+      <td><a href="../debate/{{debate.did}}">edit</a></td>
+      <td><a href="../votex/{{debate.did}}">admin vote</a></td>
+    </tr>
+    <tr><td>[<a href="../debate">+ new debate</a>]</td></tr>
+</table>

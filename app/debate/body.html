@@ -1,0 +1,55 @@
+<style>
+  .i {height:{{state.data.imgh}};width:{{state.data.imgw}};display:{{state.data.imgdisp}};}
+  .imgdisp {display:{{state.data.imgdisp}};}
+</style>
+<input id="STATE.title" placeholder="title" class="maxwidth" onkeyup="SCOPE.state.title=this.value;"></input><br>
+<textarea rows=4 id="STATE.data.prompt" placeholder="prompt" class="maxwidth" onkeyup="SCOPE.state.data.prompt=this.value;">If your top choice could not possibly win, your vote automatically transfers to the next choice.</textarea><br>
+<div ng-sortable="opts" id="THEMAINLIST" class="choices">
+  <div ng-repeat="choice in state.data.candidates"><div class="rounded vbuffered"><table><tr>
+    <td rowspan=2><input placeholder="identifier" name="{{$index}}" style="max-width:80px;"
+      onkeyup="SCOPE.state.data.candidates[parseInt(this.name)][0]=this.value;" value="{{choice[0]}}"></input></td>
+    <td rowspan=2>&nbsp;&nbsp;<img class="i" src="{{choice[2]}}" alt="{{choice[0]}}">&nbsp;&nbsp;<br>
+    </td>
+    <td class="maxwidth"><input placeholder="choice text" name="{{$index}}" class="maxwidth" style="min-width:80px" onkeyup="SCOPE.state.data.candidates[parseInt(this.name)][1]=this.value;" value="{{choice[1]}}"></input></td>
+    <!-- TODO make a settings option: delete, chosen by default, unchosen by default, preferred color-->
+    <td rowspan=2><button style="color:red;" name="{{$index}}" onclick="SCOPE.state.data.candidates.splice(parseInt(this.name),1);SCOPE.$digest();">x</button></td>
+  </tr><tr><td>
+    <input placeholder="image URL" name="{{$index}}" onkeyup="SCOPE.state.data.candidates[parseInt(this.name)][2]=this.value;" value="{{choice[2]}}" class="imgdisp maxwidth"></input></td>
+    <!-- TODO color -->
+  </tr></table></div></div>
+</div>
+<button class="rounded add maxwidth" ng-click="state.data.candidates.push(['','','']);"><h2>+ add choice&nbsp;&nbsp;</h2></button>
+<br><br>
+<select id="optiondisp" onchange="setStyle('display',this.value,['debateoptions']);SCOPE.$digest();">
+  <option value="none">debate options hidden</option>
+  <option value="">debate options shown</option>
+</select><br>
+<div style="display:none" id="debateoptions" class="rounded">
+<!--
+  <select id="STATE.visibility" onchange="SCOPE.state.data.visibility=this.value;">
+    <option value="hidden">hidden - not in a directory, but the link can be easily shared</option>
+    <option value="public">public - can be found in the debate directory</option>
+    <option value="invite">invite only - TODO only specific users are allowed to see it</option>
+    <option value="close">closed public - TODO refuse votes by allow results to be seen</option>
+    <option value="disable">disable - TODO hide and refuse votes</option>
+    <option value="admin">admin approved - TODO an administrator allows your vote to count</option>
+  </select>
+-->
+  <select id="STATE.imgdisp" onchange="SCOPE.state.data.imgdisp=this.value;setStyle('display',this.value,['STATE.data.imgw','STATE.data.imgh']);SCOPE.$digest();">
+    <option value="none">no image displayed with choice</option>
+    <option value="">choices must have image</option>
+  </select>
+  <input id="STATE.data.imgw" style="display:none" placeholder="image width in pixels" onkeyup="SCOPE.state.data.imgw=this.value;SCOPE.$digest();"></input>
+  <input id="STATE.data.imgh" style="display:none" placeholder="image height in pixels" onkeyup="SCOPE.state.data.imgh=this.value;SCOPE.$digest();"></input><br>
+  <select id="jsoninsertoption" onchange="setStyle('display',this.value,['jsoninsert','jsoninsertbutton']);SCOPE.refresh();SCOPE.$digest();">
+    <option value="none">use standard editor</option>
+    <option value="">use advanced editor</option>
+  </select><input id="jsoninsertbutton" type='button' value="use the following JSON" onclick='insertJSON();' style="display:none"></input><br>
+  <textarea id="jsoninsert" cols=40 rows=10 class="maxwidth" style="display:none;font-family:courier;" placeholder="code for insert JSON (optional)"></textarea>
+</div>
+<br>
+<button ng-click="submit()" class="submitbutton clearbutton maxwidth">
+  <h1>submit for debate</h1>
+</button>
+<br><div id="response"></div>
+<br>

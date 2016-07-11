@@ -1,0 +1,36 @@
+rank
+
+debate admin:
+	do not allow a debate to be submitted if more than one choice has the same ID.
+	X arbitrary vote addition
+	vote deletion
+
+client cleanup
+	X graphical tutorial
+		X auto-detect dimensions of options and destination
+		show sorting as part of tutorial
+		option to show/hide visual tutorial
+	X make simple html to act as common header block
+	X shared .css
+	X response messages from post calls
+
+server cleanup
+	X rename new.html to debate.html, and generator.js to debate.js
+	X remove jade and bootstrap dependencies
+	X refactor app.js
+	[ignored] cache database queries in memory
+
+security
+	minimum wait-time between debate creations and vote submissions per user, shown on client, enforced on server.
+
+google deploy:
+	details: https://cloud.google.com/nodejs/getting-started/using-cloud-datastore#configure_settings
+	deploy the app: gcloud preview app deploy
+	where the deployed app is: https://<your-project-id>.appspot.com
+	OAuth Client ID: 1085518801766-1iup0rldp6m7dt3i5cdo6hva975uorhq.apps.googleusercontent.com
+	OAuth Client Secret: YargydVkOt9gtnw5TivjbD1a
+
+FEATURE CREEP
+	in debate creation, auto-create tokens by default, and have an option to show id field.
+	have an HTML preview underneath the debate editor. use image tags instead of passing in an image URL
+	make an "expanded data" option for the choice elements, which can be shown/hidden

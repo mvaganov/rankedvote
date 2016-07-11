@@ -1,0 +1,16 @@
+.rounded {border-radius: 10px; border-style:solid; border-width:1px; padding:2px;}
+.choices {min-height:200px; border-radius: 10px; border-style:solid; border-width:1px; padding:2px; min-width:32px; border-color:#ddd;}
+.chosen  {min-height:200px; border-radius: 10px; border-style:solid; border-width:1px; padding:2px; min-width:32px; }
+.choice {list-style-type:none; opacity:0.8;margin:10px;color:#000;}
+.maxwidth {width:100%;}
+.appbody {max-width:500px;margin:0 auto;}
+.navbar{font-family: Sans-serif; background-color:#f8f8f8;border-color:#e7e7e7; 
+  border-style:solid; border-width:1px;width:100%;min-height:50px;
+}
+.navbar-brand{padding:15px 5px;font-size:20px;line-height:20px; ; float:left;left:0;}
+.padded {padding: 5px 15px; float:left;}
+.navbar-right {padding:0px 0px; float:right;}
+.vbuffered {margin: 10px 5px;}
+.unslct{border-color:#ddd;color:#ddd;}
+.slcted{border-color:#afa;color:#afa;}
+.vbuffered {margin: 10px 5px;}
