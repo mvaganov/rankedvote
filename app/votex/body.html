@@ -1,8 +1,7 @@
-<input type="text" placeholder="number of votes" onkeyup="updateVoteCount(this.value);" id="votecount"></input><br>
 <style>
   .i {height:{{state.data.imgh}};width:{{state.data.imgw}};display:{{state.data.imgdisp}};}
 </style>
-<h1>{{state.title}}</h1><p ng-bind-html="state.data.prompt"></p>
+<h1>{{state.title}}</h1><p ng-bind-html="state.data.prompt"></p><input type="text" placeholder="number of votes" onkeyup="updateVoteCount(this.value);" id="votecount"></input><br>
 <table><tr ng-repeat="VOTE in state.votes track by $index"><td>
   <table border=0 class="maxwidth"><tr><td>
     <span class="unslct">unselected</span>
