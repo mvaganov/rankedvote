@@ -124,6 +124,11 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
       if($scope.state.voteID) {
         submissionState.id = $scope.state.voteID;
       }
+      if(!creatorID || creatorID == "0") {
+        var submitButton = ByID("sbmt");
+        submitButton.disabled = true;
+        submitButton.innerHTML = "You must login to vote!";
+      }
       // TODO validate voter id
       // TODO validate debate id matches the last part of the URL
 

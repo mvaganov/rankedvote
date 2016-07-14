@@ -23,5 +23,10 @@ angular.module('vote', [])
         v[i].name = v[i].did;
       }
     }
+    if(!creatorID || creatorID == "0") {
+      console.log("!!!");
+      var newDeb = ByID("newdebates");
+      newDeb.style.visibility = 'none';
+    }
     // console.log("??? "+JSON.stringify($scope.state, null, 2));
   }]);

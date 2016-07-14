@@ -34,3 +34,9 @@ FEATURE CREEP
 	in debate creation, auto-create tokens by default, and have an option to show id field.
 	have an HTML preview underneath the debate editor. use image tags instead of passing in an image URL
 	make an "expanded data" option for the choice elements, which can be shown/hidden
+
+
+GCLOUD questions to solve:
+	* why do I have 8 VM instances when my app won't even deploy once? am I paying for each of those instances? can I reduce the amount of instances that my app is using?
+	* how can I SSH into an instance and look around? can I do an ls command and see what files are in there?
+	* why is my deploy not working?

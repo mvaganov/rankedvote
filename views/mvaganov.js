@@ -137,37 +137,66 @@ function printPropertiesOf(obj) {
 /** a list of all of the modules this machine can access, built by the command line "npm ls --json" */
 var npmListing = null;
 var processStarted = false;
-function gatherNpmListing() {
-	if(processStarted) return;
-	processStarted = true;
-	// try to get other installed modules from the npm command line tool
-	require("child_process").exec("npm ls --json", 
-		function(err, stdout, stderr) {
-			if (err) return console.log("mvaganov.gatherNpmListing: "+err)
-			npmListing = JSON.parse(stdout);
-			// add the libraries to the npmListing
-			function addTheModuleToThisListing(npmListing, moduleName) {
-				console.log(moduleName);
-				if(moduleName != null) {
-					try{
-						npmListing["module"] = require(moduleName);
-					}catch(err){
-						npmListing["module"] = err;
-						//console.log("couldn't load "+moduleName);
-					}
-				}
-				if(npmListing["dependencies"]) {
-					for(var d in npmListing.dependencies) {
-						addTheModuleToThisListing(npmListing.dependencies[d], d);
-					}
-				}
-				// after the root is done, print.
-				if(moduleName == null) {
-					printReflectionInConsole(npmListing, "npmListing", 3);
-				}
-			}(npmListing); // call the function right after defining it
+function gatherNpmListing(cb) {
+	var callbackTime = 30000; // 30 seconds to attempt the "npm ls --json" call
+	setTimeout(function(){
+		if(callbackTime) {
+			callbackTime = false;
+			return cb("'npm ls --json' timed-out");
 		}
-	);
+	}, callbackTime);
+	// try to get other installed modules from the npm command line tool
+	require("child_process").exec("npm ls --json", function(err, stdout, stderr) {
+		if (err) {
+			if(callbackTime) {
+				callbackTime = false;
+				return cb("mvaganov.gatherNpmListing: "+err);
+			}
+		}
+		var npmListing = JSON.parse(stdout);
+		var //providesFor = {}, dependsOn = {}, 
+		  simpleList = [];
+		var nodes = {};
+		function addToList(treeNode, dependentName) {
+			var dep = treeNode.dependencies;
+			// dependsOn[dependentName] = [];
+			if(!nodes[dependentName]) {
+				nodes[dependentName] = {needs:[], gives:[]};
+			}
+			if(simpleList.indexOf(dependentName) < 0) { simpleList.push(dependentName); }
+			if(dep) {
+				for(n in dep){
+					if(simpleList.indexOf(n) < 0) { simpleList.push(n); }
+					var nod = nodes[dependentName];
+					if(nod.needs.indexOf(n) < 0) { nod.needs.push(n); }
+					var other = nodes[n];
+					if(!other){
+						nodes[n] = other = {needs:[], gives:[]};
+					}
+					if(other.gives.indexOf(dependentName) < 0) { other.gives.push(dependentName); }
+					addToList(dep[n], n);
+				}
+			}
+		}
+		addToList(npmListing, npmListing.name);
+
+		simpleList.sort(function(a, b) {
+			var v = nodes[a].gives.length - nodes[b].gives.length;
+			return (v?v:(nodes[b].needs.length - nodes[a].needs.length)); });
+		var sortedProvidesFor = {};
+		simpleList.forEach(function(item){sortedProvidesFor[item]=nodes[item];});
+
+		simpleList.sort(function(a, b) {
+			var v = nodes[a].needs.length - nodes[b].needs.length;
+			return (v?v:(nodes[b].gives.length - nodes[a].gives.length)); });
+		var sortedDependsOn = {};
+		simpleList.forEach(function(item){sortedDependsOn[item]=nodes[item];});
+
+		if(callbackTime) {
+			callbackTime = false;
+			cb(err, sortedProvidesFor, sortedDependsOn);
+		}
+	});
 }
 
 /** @param {Object} obj print an object as a JSON string, including function code */
@@ -198,8 +227,8 @@ var javaScriptObjectTraversalParameter = "jso";
  * @param {Number=} indentLevel used to properly indent, and prevent infinite recursion. limited by {@link #maxIndentLevel} (optional)
  * @return {String} the HTML script that will allow traversal. the key parameter is {@link javaScriptObjectTraversalParameter}
  */
-function createReflectedHtmlForJso(obj, pathStr, indentLevel)
-{	"use strict";
+function createReflectedHtmlForJso(obj, pathStr, indentLevel) {
+	"use strict";
 	var indentation = "", i = 0, j = 0, props = [], functions = [], childText = [], nChildTexts = 0, key, strResult = "";
 	// default arguments
 	if ( typeof pathStr === 'undefined')		pathStr = "";
@@ -243,6 +272,9 @@ function createReflectedHtmlForJso(obj, pathStr, indentLevel)
 		// null objects don't need all of this processing
 		if(obj != null)
 		{
+			// link to the prototype
+			if(obj.__proto__) { props.push('__proto__'); }
+			if(obj.prototype) { props.push('prototype'); }
 			// asks an object for all of it's members
 			for(key in obj)
 			{
@@ -325,13 +357,11 @@ function createReflectedHtmlForJso(obj, pathStr, indentLevel)
  */
 function printReflectionInConsole(obj, name, depth)
 {
-	if(name != null)
-	{
+	if(name != null) {
 		console.log("[["+name+"]]");
 	}
 	var oldMax = maxIndentLevel;
-	if(depth != null)
-	{
+	if(depth != null) {
 		maxIndentLevel = depth;
 	}
 	printInConsole = true;
@@ -349,9 +379,8 @@ function jsoNavigation(nameToEvaluate, localVariables)
 	var explicitlyNull = false;
 	var strOutput = "";
 	var jso = localVariables;
-	if(nameToEvaluate != null && nameToEvaluate !== "")
-	{
-		try{
+	if(nameToEvaluate != null && nameToEvaluate !== "") {
+		try {
 			//whatObjectToLookAt = eval(nameToEvaluate); // breaks if member has a strange character in the name
 			var p = nameToEvaluate.split('.');
 			var cursor = eval(p[0]);
@@ -385,7 +414,7 @@ function jsoNavigation(nameToEvaluate, localVariables)
  * @param request {HTTPRequest} the HTTP request
  * @param request {HTTPResponse} the HTTP response
  */
-function jsoNavHtml(request, response)
+function jsoNavHtml(request, response, extraVariableTable)
 {
 	extraVariables = ["./mvaganov"//, "./router", "./helloserver", "./requesthandler", "./db",
 		// "formidable", "express"
@@ -429,11 +458,11 @@ function jsoNavHtml(request, response)
 	localVariables["process"] = process;
 	localVariables["request"] = request;
 	localVariables["response"] = response;
-	// try to get other installed modules from the npm command line tool
-	gatherNpmListing();
-	if(npmListing != null)
-	{
-		localVariables["npmListing"] = npmListing;
+
+	if(extraVariableTable) {
+		for(var n in extraVariableTable) {
+			localVariables[n] = extraVariableTable[n];
+		}
 	}
 
 	//var q = querystring.parse(request.url);
@@ -474,6 +503,34 @@ function getIP(req) {
 	req.socket.remoteAddress ||
 	req.connection.socket.remoteAddress;
 	return ip;
+}
+
+function getLocalServerIP() {
+	var os = require('os');
+	var ifaces = os.networkInterfaces();
+	var data = {};
+	Object.keys(ifaces).forEach(function (ifname) {
+	  var alias = 0;
+	  var addresses = [];
+	  ifaces[ifname].forEach(function (iface) {
+	    if (//'IPv4' !== iface.family || 
+	    	iface.internal !== false) {
+	      // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
+	      return;
+	    }
+	    addresses.push(iface.address);
+	    // if (alias >= 1) {
+	    //   // this single interface has multiple ipv4 addresses
+	    //   console.log(ifname + ':' + alias, iface.address);
+	    // } else {
+	    //   // this interface has only one ipv4 adress
+	    //   console.log(ifname, iface.address);
+	    // }
+	    // ++alias;
+	  });
+	  if(addresses.length) { data[ifname] = addresses; }
+	});
+	return data;
 }
 
 /**
@@ -696,6 +753,8 @@ exports.jsoNavHtml = jsoNavHtml; // TODO make a more modular explorer of this. m
 exports.jsoNavigation = jsoNavigation; // TODO remove exposure of this
 exports.createReflectedHtmlForJso = createReflectedHtmlForJso; // TODO remove exposure of this
 
+exports.gatherNpmListing = gatherNpmListing;
+
 exports.printReflectionInConsole = printReflectionInConsole;
 exports.logjso = printReflectionInConsole;
 exports.toJSONWithFuncs = toJSONWithFuncs;
@@ -704,3 +763,4 @@ exports.lineReplaceTemplate = lineReplaceTemplate;
 exports.CachedMadlibs = CachedMadlibs;
 exports.printPropertiesOf = printPropertiesOf;
 exports.serveFileByLine = serveFileByLine;
+exports.getLocalServerIP = getLocalServerIP;

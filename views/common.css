@@ -13,4 +13,6 @@
 .vbuffered {margin: 10px 5px;}
 .unslct{border-color:#ddd;color:#ddd;}
 .slcted{border-color:#afa;color:#afa;}
+.srvinfo{border-color:#ddd; font-size:10px; color:#ddd;max-width:500px;margin:0 auto;}
 .vbuffered {margin: 10px 5px;}
+html { font-family: sans-serif; }
