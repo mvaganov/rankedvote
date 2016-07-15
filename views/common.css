@@ -7,12 +7,16 @@
 .navbar{font-family: Sans-serif; background-color:#f8f8f8;border-color:#e7e7e7; 
   border-style:solid; border-width:1px;width:100%;min-height:50px;
 }
-.navbar-brand{padding:15px 5px;font-size:20px;line-height:20px; ; float:left;left:0;}
+.navbar-brand{padding:5px 5px;font-size:20px;line-height:20px; ; float:left;left:0;}
 .padded {padding: 5px 15px; float:left;}
-.navbar-right {padding:0px 0px; float:right;}
+.navbar-right {padding:0px 0px; float:right; text-align: right;}
 .vbuffered {margin: 10px 5px;}
 .unslct{border-color:#ddd;color:#ddd;}
 .slcted{border-color:#afa;color:#afa;}
 .srvinfo{border-color:#ddd; font-size:10px; color:#ddd;max-width:500px;margin:0 auto;}
 .vbuffered {margin: 10px 5px;}
-html { font-family: sans-serif; }
+html { font-family: sans-serif; zoom: 1.5; -moz-transform: scale(1.5); -moz-transform-origin: 0 0;}
+.loading {
+	position: fixed; left: 0px; top: 0px; width: 100%; height: 100%; z-index: 9999;
+	background: url(Preloader_2.gif) center no-repeat #fff; opacity: .75;
+}

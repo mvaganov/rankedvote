@@ -663,17 +663,20 @@ CachedMadlibs.prototype.fillOut = function(variables, onComponent, cb) {
 	var i=0;
 	var writeMadlibs = function() {
 		do{
-			if(i>=self.parsedData.length) {
-				if(self.mtime) { // if this should be mirroring a file, check if the file has changed.
+			if(!self.parsedData || i>=self.parsedData.length) {
+				var dataAtStart = self.parsedData;
+				if(self.mtime || self.filepath) { // if this should be mirroring a file, check if the file has changed.
 					const fs = require('fs');
 					fs.lstat(self.filepath, function(err, stats) {
-						var now = stats.mtime.toString(), then = self.mtime.toString();
+						var now = stats.mtime.toString(), then = (self.mtime)?self.mtime.toString():null;
 						if(now != then) { // if the file changed, load up the new file, so that next time, this is accurate.
 							self.initFromFile(self.filepath, self.variableList, self.options, null);
 						}
 					});
 				}
-				return cb(null);
+				if(dataAtStart) return cb(null);
+				if(self.parsedData) return setTimeout(writeMadlibs,0);
+				return cb("dataproblem at "+self.filepath);
 			}
 			onComponent(self.parsedData[i]);
 			i++;

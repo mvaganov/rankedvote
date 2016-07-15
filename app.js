@@ -15,16 +15,13 @@
 
 'use strict';
 
-// lunchy stop memcached
-// lunchy start memcached
-
 // var incrementalApp = 7; // how much of this app should be deployed right now. done while trying to debug deployment problems.
 
 var express = require('express');
 var app = express();
 var config = require('./config');
 
-var IS_DEBUG = true;//config.get('rankedvote_debug') == true;
+var IS_DEBUG = config.get('rankedvote_debug') == true;
 
 // if(incrementalApp == 0) {
 //   app.get('/', function(req, res) {
@@ -132,12 +129,20 @@ var sessionConfig = {
 if (config.get('NODE_ENV') === 'production' 
   //&& false // not using the memcache service... it halts the system and prevents acceptance of the app.
   ) {
-  var memcacheCon = config.get('MEMCACHE_URL');
-  if(memcacheCon.indexOf(',') >= 0) {
-    memcacheCon = memcacheCon.split(',');
-  } else { memcacheCon = [memcacheCon]; }
+  //var memcacheCon = config.get('MEMCACHE_URL');
+  var memcachedAddr = process.env.MEMCACHE_PORT_11211_TCP_ADDR || 'localhost';
+  var memcachedPort = process.env.MEMCACHE_PORT_11211_TCP_PORT || '11211';
+  var memcacheCon = memcachedAddr + ':' + memcachedPort;
+  var Memcached = require('memcached');
+
+  // if(memcacheCon.indexOf(',') >= 0) {
+  //   memcacheCon = memcacheCon.split(',');
+  // } else { memcacheCon = [memcacheCon]; }
   console.log("connecting to memcache at "+memcacheCon);
-  memStore = sessionConfig.store = new MemcachedStore({ hosts: memcacheCon });
+  // memStore = new Memcached(memcacheCon);
+  memStore = new MemcachedStore({ hosts: memcacheCon });
+  sessionConfig.store = memStore;//new MemcachedStore({ hosts: memcacheCon });
+  // memStore = sessionConfig.store;
   console.log("memcache creation done (?)");
 }
 
@@ -149,7 +154,9 @@ if (config.get('NODE_ENV') === 'production'
 // if(incrementalApp >= 6) { ////////////////////////////////////////////// //////////////////////////////////////////////
 
 if(IS_DEBUG) app.use(function (req,res,next){
-  log("["+req.method+"]"+req.url);
+  if(req.url.indexOf("_ah") < 0) { // hide noisy health checks
+    log("["+req.method+"]"+req.url);
+  }
   next();
 });
 function addSpecialOutputFails(res, fail) {
@@ -159,7 +166,7 @@ function addSpecialOutputFails(res, fail) {
 }
 var TIMEOUT_WATCHER = null;
 function timedRouter(router, routerCode, maxTimeout) {
-  maxTimeout = maxTimeout || 1000;
+  maxTimeout = maxTimeout || 5000;
   return function (req,res,next) {
     var startTime = Date.now();
     TIMEOUT_WATCHER = routerCode;
@@ -180,16 +187,43 @@ function timedRouter(router, routerCode, maxTimeout) {
   }
 }
 
+// what to do with google health checks? ignore them?
+app.get('/_ah/health', function(req,res,next){ res.end(); });
+app.get('/_ah/start', function(req,res,next){ res.end(); });
+
 // reasy stuff to handle
 app.get('/*.js', express.static('views'));
 app.get('/*.css', express.static('views'));
 app.get('/*.png', express.static('views'));
+app.get('/*.gif', express.static('views'));
 // stuff to ignore
 app.get('/*.js.map', function(req,res,next){res.end();});//express.static('views'));
 app.get(['*{{*', '*%7b%7b*'], function(req,res, next){ log("angular variable bug..."); res.end(); })
 
 // prep for special output
 app.use(function(req,res,next){res.specialOutput={};next();});
+
+var rand_memcache;
+function GetMemCache() {
+  if(!rand_memcache) {
+    var memcachedAddr = process.env.MEMCACHE_PORT_11211_TCP_ADDR || 'localhost';
+    var memcachedPort = process.env.MEMCACHE_PORT_11211_TCP_PORT || '11211';
+    var Memcached = require('memcached');
+    rand_memcache = new Memcached(memcachedAddr + ':' + memcachedPort);
+  }
+  return rand_memcache
+}
+app.get('/rand', function (req, res, next) {
+  var mem = GetMemCache();
+  mem.get('foo', function (err, value) {
+    if (err) { return next(err); }
+    if (value) { return res.status(200).send('Value: ' + value); }
+    mem.set('foo', Math.random(), 10, function (err) {
+      if (err) { return next(err); }
+      return res.redirect('/rand');
+    });
+  });
+});
 
 app.use(
   timedRouter(
@@ -365,10 +399,10 @@ var writeWebpageHeader = function(req, res, title, includes, codeToInsert, cb) {
     var passportHtml;
     if(req.session && req.session.passport && req.session.passport.user) {
       var user = req.session.passport.user;
-      passportHtml = '<img src="'+
-      user.image+'" height="48" class="img-circle"> '+
-      user.displayName+' <a href=\"/auth/logout?return='+
-      encodeURIComponent(req.originalUrl)+'\">(logout)</a>';
+      passportHtml = '<table><tr><td><img src="'+
+      user.image+'" height="48" class="img-circle"></td><td>'+
+      user.displayName+'<br><a href=\"/auth/logout?return='+
+      encodeURIComponent(req.originalUrl)+'\">(logout)</a></td></tr></table>';
     } else {
       passportHtml = '<a href=\"/auth/login?return='+
       encodeURIComponent(req.originalUrl)+'\""><img src=\"'+
@@ -402,13 +436,17 @@ var writeWebpageFooter = function (req, res, cb) {
     var os = require('os');
     var ifaces = mvaganov.getLocalServerIP();//os.networkInterfaces();
     SERVER_IP_INFO = JSON.stringify(ifaces);
+    const fs = require('fs');
+    fs.lstat(__filename, function(err, stats) {
+      SERVER_IP_INFO = stats.mtime+" "+SERVER_IP_INFO;
+    });
   }
   var _writeWebpageFooter = function(err) {
     if(err) { console.log("_writeWebpageFooter error: "+err); return cb(err);}
     var fillVariables = {};
-    fillVariables[footerVariables.info] = SERVER_IP_INFO+
+    fillVariables[footerVariables.info] = "RankedVote Alpha. "+SERVER_IP_INFO+
       ((res.specialOutput && Object.keys(res.specialOutput).length)?"<br>"+JSON.stringify(res.specialOutput):"")+
-      "<br>RankedVote Alpha.<br>Send bugs and feature requests to 'mvaganov' at hotmail";
+      "<br>Send bugs and feature requests to 'mvaganov' at hotmail";
     cachedFooter.fillOut(fillVariables, function(str) {
       res.write(str);
     }, cb);
@@ -841,18 +879,14 @@ function DS_UpdateIdString(kind,id) {
   return serialized;
 }
 
-function DS_getCached(qid, callback) {
-  //memStore.
-  callback(null,null);
+function DS_getCached(q, callback) {
+  var qid = typeof q === 'string'?q:QueryIdString(q);
+  GetMemCache().get(qid, callback);
 }
 function DS_setCached(q, data, callback) {
   var qid = typeof q === 'string'?q:QueryIdString(q);
-  if(data === undefined) {
-    // delete from memstore
-  } else {
-    //memStore.touch
-  }
-  callback(null);
+  var mem = GetMemCache();
+  mem.set(qid, data, 60 * 5, callback);
 }
 
 /** puts the datastore key into the object data, and gives the object data without the rest of the datastore overhead infrastructure */
@@ -900,16 +934,7 @@ function DS_toDatastore (obj, kind) {
   });
   return results;
 }
-// /** list *all* of the kinds... TODO remove */
-// function DS_list (kind, limit, token, cb) {
-//   log("DS_list");
-//   var q = ds.createQuery([kind]) .limit(limit) .order('title') .start(token);
-//   ds.runQuery(q, function (err, entities, nextQuery) {
-//     if (err) { log("DS_list: "+err); return cb(err); }
-//     var hasMore = entities.length === limit ? nextQuery.startVal : false;
-//     cb(null, entities.map(DS_fromDatastore, kind), hasMore);
-//   });
-// }
+
 /** list kinds with a given key value
  * @param keyFilters table that looks like {property: uniqueID} or [property, operation, uniqueID, property, operation, uniqueID, ...]
  * if keyFilters has a SORTBY property, that will be removed as a filer, and used as an order to use.
@@ -975,27 +1000,28 @@ function DS_listBy (kind, keyFilters, limit, token, cb) {
 }
 
 function DS_ensureSession(callback) { callback(); }
-function DS_refreshSession(callback) {
-  var timeLeft = 0;
-  if(ds.authClient.authClient) {
-    timeLeft = ds.authClient.authClient.credentials.expiry_date - (Date.now()/1000);
-  }
-  log("AUTHCLIENT:::::::: "+timeLeft+"\n"+JSON.stringify(ds.authClient));
-  // if the credentials will expire in 5 seconds or less
-  if(ds.authClient.authClient
-  && ds.authClient.authClient.credentials.expiry_date < (Date.now()/1000)+5) {
-    log("NEED TO REAUTHENTICATE!!!");
-    // re-authenticate session
-    ds.authClient.refreshAccessToken(function(err, tokens) {
-      // your access_token is now refreshed and stored in oauth2Client
-      // store these new tokens in a safe place (e.g. database)
-      log("AUTHENTICATED!!!");
-      callback();
-    });
-  } else {
-    callback();
-  }
-}
+// function DS_refreshSession(callback) {
+//   var timeLeft = 0;
+//   if(ds.authClient.authClient) {
+//     timeLeft = ds.authClient.authClient.credentials.expiry_date - (Date.now()/1000);
+//   }
+//   log("AUTHCLIENT:::::::: "+timeLeft+"\n"+JSON.stringify(ds.authClient));
+//   // if the credentials will expire in 5 seconds or less
+//   if(ds.authClient.authClient
+//   && ds.authClient.authClient.credentials
+//   && ds.authClient.authClient.credentials.expiry_date < (Date.now()/1000)+5) {
+//     log("NEED TO REAUTHENTICATE!!!");
+//     // re-authenticate session
+//     ds.authClient.refreshAccessToken(function(err, tokens) {
+//       // your access_token is now refreshed and stored in oauth2Client
+//       // store these new tokens in a safe place (e.g. database)
+//       log("AUTHENTICATED!!!");
+//       callback();
+//     });
+//   } else {
+//     callback();
+//   }
+// }
 
 /** add or update an entry. calls toDatastore to correctly format the data
  * @param id to update. if null, will get a new unique ID

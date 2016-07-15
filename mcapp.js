@@ -1,5 +1,19 @@
 'use strict';
 
+// http://www.rahuljiresal.com/2014/03/installing-memcached-on-mac-with-homebrew-and-lunchy/
+// lunchy stop memcached
+// ps -ef | grep memcached
+// lunchy start memcached
+// https://wincent.com/wiki/testing_memcached_with_telnet
+// 		telnet localhost 11211
+//		set command:
+//			set greeting 1 0 11<press enter>Hello world<press enter>
+//		get command:
+//			get greeting
+
+
+// most basic HTTP server: http://www.nodebeginner.org/
+
 var express = require('express');
 var app = express();
 var config = require('./config');
@@ -9,6 +23,36 @@ var passport = require('passport');
 var waterfall = require('async-waterfall'); // TODO replace async.waterfall use with just waterfall
 var MemcachedStore = require('connect-memcached')(session);
 var mvaganov = require('./views/mvaganov');
+
+'use strict';
+
+var express = require('express');
+
+// The environment variables are automatically set by App Engine when running
+// on GAE. When running locally, you should have a local instance of the
+// memcached daemon running.
+var rand_memcache;
+app.get('/rand', function (req, res, next) {
+  if(!rand_memcache) {
+	var memcachedAddr = process.env.MEMCACHE_PORT_11211_TCP_ADDR || 'localhost';
+	var memcachedPort = process.env.MEMCACHE_PORT_11211_TCP_PORT || '11211';
+	var Memcached = require('memcached');
+  	rand_memcache = new Memcached(memcachedAddr + ':' + memcachedPort);
+  }
+  rand_memcache.get('foo', function (err, value) {
+    if (err) { return next(err); }
+    if (value) { return res.status(200).send('Value: ' + value); }
+    rand_memcache.set('foo', Math.random(), 3, function (err) {
+      if (err) { return next(err); }
+      return res.redirect('/rand');
+    });
+  });
+});
+
+// var server = app.listen(process.env.PORT || 8080, function () {
+//   console.log('App listening on port %s', server.address().port);
+//   console.log('Press Ctrl+C to quit.');
+// });
 
 // Configure the session and session storage.
 var sessionConfig = {
@@ -55,6 +99,7 @@ app.get('/',function (req,res) {
 		function setSomething(callback){
 			memc.set('test1', 'this is a test ['+Date.now()+']', function(err){
 				res.write("<!DOCTYPE html>"+JSON.stringify(err)+"<br><br>");
+
 				callback(null);
 			});
 		}, function doWebpage (callback){
