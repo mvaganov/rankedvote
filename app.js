@@ -1,21 +1,7 @@
 // Apache 2.0 License - 2016, Michael Vaganov
 // author: mvaganov@shschools.org
 // Based on work by Google, Inc at https://github.com/GoogleCloudPlatform/nodejs-getting-started.git
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 'use strict';
-
-// var incrementalApp = 7; // how much of this app should be deployed right now. done while trying to debug deployment problems.
 
 var express = require('express');
 var app = express();
@@ -23,54 +9,17 @@ var config = require('./config');
 
 var IS_DEBUG = config.get('rankedvote_debug') == true;
 
-// if(incrementalApp == 0) {
-//   app.get('/', function(req, res) {
-//     res.end('rankedvote coming soon.');
-//   });
-// }
-// if(incrementalApp >= 1) { ////////////////////////////////////////////// //////////////////////////////////////////////
-
 var path = require('path');
 var session = require('express-session');
 var passport = require('passport');
-var waterfall = require('async-waterfall'); // TODO replace async.waterfall use with just waterfall
-
-// if(incrementalApp == 1) {
-//   app.get('/', function(req, res) {
-//     res.end('rankedvote coming soon.\nall simple dependencies');
-//   });
-// }
-// if(incrementalApp >= 2) { ////////////////////////////////////////////// //////////////////////////////////////////////
-
+var waterfall = require('async-waterfall');
 var irv = require('./views/irv');
 var mvaganov = require('./views/mvaganov');
-
-// if(incrementalApp == 2) {
-//   app.get('/', function(req, res) {
-//     // res.end('rankedvote coming soon.\ncustom dependencies');
-//     mvaganov.gatherNpmListing(function (err, listing) {
-//       var message = 'rankedvote coming soon.\ncustom dependencies';
-//       if(!err) {
-//         message += '\n'+JSON.stringify(listing, null, 2);
-//       } else {
-//         message += '\n'+JSON.stringify(err);
-//       }
-//       res.end(message);
-//     });
-//   });
-// }
-// if(incrementalApp >= 3) { ////////////////////////////////////////////// //////////////////////////////////////////////
 
 var MemcachedStore = require('connect-memcached')(session);
 var gcloud = require('gcloud');
 var ds = gcloud.datastore({ projectId: config.get('GCLOUD_PROJECT') });
 
-// if(incrementalApp == 3) {
-//   app.get('/', function(req, res) {
-//     res.end('rankedvote coming soon.\ndatabase dependencies');
-//   });
-// }
-// if(incrementalApp >= 4) { ////////////////////////////////////////////// //////////////////////////////////////////////
 
 var MUST_HAVE_VAR_GROUP = {};
 function MUST_HAVE_VAR(varname, varGroup, cb) {
@@ -116,42 +65,14 @@ var sessionConfig = {
   signed: true
 };
 
-// if(incrementalApp == 4) {
-//   app.get('/', function(req, res) {
-//     res.end('rankedvote coming soon.\nconfig initialization\n'+variablesOutput);
-//   });
-// }
-// if(incrementalApp >= 5) { ////////////////////////////////////////////// //////////////////////////////////////////////
-
-// In production use the App Engine Memcache instance to store session data,
-// otherwise fallback to the default MemoryStore in development.
-
-if (config.get('NODE_ENV') === 'production' 
-  //&& false // not using the memcache service... it halts the system and prevents acceptance of the app.
-  ) {
-  //var memcacheCon = config.get('MEMCACHE_URL');
+if (config.get('NODE_ENV') === 'production' ) {
   var memcachedAddr = process.env.MEMCACHE_PORT_11211_TCP_ADDR || 'localhost';
   var memcachedPort = process.env.MEMCACHE_PORT_11211_TCP_PORT || '11211';
   var memcacheCon = memcachedAddr + ':' + memcachedPort;
-  var Memcached = require('memcached');
-
-  // if(memcacheCon.indexOf(',') >= 0) {
-  //   memcacheCon = memcacheCon.split(',');
-  // } else { memcacheCon = [memcacheCon]; }
-  console.log("connecting to memcache at "+memcacheCon);
-  // memStore = new Memcached(memcacheCon);
+  log("connecting to memcache at "+memcacheCon);
   memStore = new MemcachedStore({ hosts: memcacheCon });
-  sessionConfig.store = memStore;//new MemcachedStore({ hosts: memcacheCon });
-  // memStore = sessionConfig.store;
-  console.log("memcache creation done (?)");
+  sessionConfig.store = memStore;
 }
-
-// if(incrementalApp == 5) {
-//   app.get('/', function(req, res) {
-//     res.end('rankedvote coming soon.\nMemcachedStore config');
-//   });
-// }
-// if(incrementalApp >= 6) { ////////////////////////////////////////////// //////////////////////////////////////////////
 
 if(IS_DEBUG) app.use(function (req,res,next){
   if(req.url.indexOf("_ah") < 0) { // hide noisy health checks
@@ -251,13 +172,6 @@ app.use(
   ,"lib/oauth2")
 ); // handle the authentication heavy lifting plz k thx
 
-// if(incrementalApp == 6) {
-//   app.get('/', function(req, res) {
-//     res.end('rankedvote coming soon.\nauthentication initialization seems setup');
-//   });
-// }
-// if(incrementalApp >= 7) { ////////////////////////////////////////////// //////////////////////////////////////////////
-
 function refreshDBAuthIfNeeded(req, cb) {
   if(req.session && !req.session.dbAuthExpire) {
     req.session.dbAuthExpire = Date.now() + 60000;
@@ -269,10 +183,11 @@ function refreshDBAuthIfNeeded(req, cb) {
     GetVoter(req,res,function (){
       req.session.dbAuthExpire = Date.now() + 60000;
       cb();
-    });
+    }, true); // force voter pull from database
   } else { cb(); }
 }
 
+function DS_ensureSession(callback) { callback(); } // <-- TODO use this instead?
 app.use(function (req,res,next) { refreshDBAuthIfNeeded(res, next); });
 
 /** @return the user ID from the OAuth2 passport, null if not logged in */
@@ -295,19 +210,22 @@ function ensureLoginGET(req, res) {
 
 /** 
  * @param cb {function(err, voterRecord)}
+ * @param FORCED if true, will force a database call
  */
-function GetVoter(req, res, cb) {
+function GetVoter(req, res, cb, FORCED) {
   var userID = GetUserID(req);
   if(!userID) {return cb(null,null);}
   if(!req.session) {return cb("missing session");}
   if(!req.session.rankedvote) { req.session.rankedvote = {}; }
-  if(req.session.rankedvote.voter
+  if(req.session.rankedvote.voter && !FORCED
   && req.session.rankedvote.voter.email == req.session.passport.user.email) {
     return cb(null, req.session.rankedvote.voter); // cached voter
   }
   //log("getting voter ID for "+userID);
   if(userID !== null) {
-    DS_listBy (T_VOTER, {'email': req.session.passport.user.email}, 1, null, function (err, entities, cursor) {
+    var filter = {'email': req.session.passport.user.email};
+    if(FORCED) { filter.FORCED = true; }
+    DS_listBy (T_VOTER, filter, 1, null, function (err, entities, cursor) {
       if (err) { log(err); return cb(err, null); }
       if(!entities || entities.length == 0) {
         //log("voter record for "+userID+" does not exist. creating...");
@@ -497,8 +415,6 @@ app.get(['/debate/:did','/debate'], function (req, res) {
 });
 
 app.get('/debates', function(req, res) {
-  //log('a');
-  //var gid = ensureLoginGET(req, res); if(gid == null) { return; }
   var scope = {};
   waterfall([
     function getVoter(callback) {
@@ -941,6 +857,8 @@ function DS_toDatastore (obj, kind) {
  */
 function DS_listBy (kind, keyFilters, limit, token, cb) {
   log("DS_listBy "+kind+" where "+JSON.stringify(keyFilters)+ " L"+limit+((token)?(" @"+token):"")+" -> "+(typeof cb));
+  var FORCED = keyFilters.FORCED;
+  if(FORCED) { keyFilters.FORCED = undefined; }
   var q = ds.createQuery([kind]);
   var sortBy = keyFilters.SORTBY;
   var select = keyFilters.SELECT;
@@ -982,7 +900,7 @@ function DS_listBy (kind, keyFilters, limit, token, cb) {
   }
   var qid = DS_QueryIdString(q);
   DS_getCached(qid, function (err,cached) {
-    if(cached) { cb(null, cached.dat, cached.next); }
+    if(!FORCED && cached) { cb(null, cached.dat, cached.next); }
     else {
       DS_ensureSession(function (){
         ds.runQuery(q, function (err, entities, nextQuery) {
@@ -998,30 +916,6 @@ function DS_listBy (kind, keyFilters, limit, token, cb) {
     }
   });
 }
-
-function DS_ensureSession(callback) { callback(); }
-// function DS_refreshSession(callback) {
-//   var timeLeft = 0;
-//   if(ds.authClient.authClient) {
-//     timeLeft = ds.authClient.authClient.credentials.expiry_date - (Date.now()/1000);
-//   }
-//   log("AUTHCLIENT:::::::: "+timeLeft+"\n"+JSON.stringify(ds.authClient));
-//   // if the credentials will expire in 5 seconds or less
-//   if(ds.authClient.authClient
-//   && ds.authClient.authClient.credentials
-//   && ds.authClient.authClient.credentials.expiry_date < (Date.now()/1000)+5) {
-//     log("NEED TO REAUTHENTICATE!!!");
-//     // re-authenticate session
-//     ds.authClient.refreshAccessToken(function(err, tokens) {
-//       // your access_token is now refreshed and stored in oauth2Client
-//       // store these new tokens in a safe place (e.g. database)
-//       log("AUTHENTICATED!!!");
-//       callback();
-//     });
-//   } else {
-//     callback();
-//   }
-// }
 
 /** add or update an entry. calls toDatastore to correctly format the data
  * @param id to update. if null, will get a new unique ID
@@ -1083,8 +977,6 @@ function DS_delete (kind, id, cb) {
   });
   // var key = ds.key([kind, parseInt(id, 10)]); ds.delete(key, cb);
 }
-
-// } } } } } } } // incrementalApp ////////////////////////////////////////////// //////////////////////////////////////////////
 
 // Basic 404 handler
 app.use(function (req, res) { res.status(404).send('Not Found'); });
