@@ -88,7 +88,7 @@ function addSpecialOutputFails(res, fail) {
 }
 var TIMEOUT_WATCHER = null;
 function timedRouter(router, routerCode, maxTimeout) {
-  maxTimeout = maxTimeout || 5000;
+  maxTimeout = maxTimeout || 7000;
   return function (req,res,next) {
     var startTime = Date.now();
     TIMEOUT_WATCHER = routerCode;
@@ -111,6 +111,9 @@ function timedRouter(router, routerCode, maxTimeout) {
 
 function END(req,res, resEnd) {
   log("[/"+req.method+"] "+req.url+(resEnd?(" "+JSON.stringify(resEnd)):""));
+  if(resEnd && typeof resEnd !== 'string') {
+    resEnd = JSON.stringify(resEnd);
+  }
   res.end(resEnd);
 }
 
@@ -186,7 +189,7 @@ app.use(
   ,"lib/oauth2")
 ); // handle the authentication heavy lifting plz k thx
 
-function refreshDBAuthIfNeeded(req, cb) {
+function refreshDBAuthIfNeeded(req, res, cb) {
   if(req.session && !req.session.dbAuthExpire) {
     req.session.dbAuthExpire = Date.now() + 60000;
     cb();
@@ -194,7 +197,7 @@ function refreshDBAuthIfNeeded(req, cb) {
     // log("DB AUTH IN "+(req.session.dbAuthExpire - Date.now()));
     //DS_refreshSession(function(){next()});
     // making any database call after the auth expires will reset the auth token for the database
-    GetVoter(req,res,function (){
+    GetVoter(req,res,function () {
       req.session.dbAuthExpire = Date.now() + 60000;
       cb();
     }, true); // force voter pull from database
@@ -202,7 +205,7 @@ function refreshDBAuthIfNeeded(req, cb) {
 }
 
 function DS_ensureSession(callback) { callback(); } // <-- TODO use this instead?
-app.use(function (req,res,next) { refreshDBAuthIfNeeded(res, next); });
+app.use(function (req,res,next) { refreshDBAuthIfNeeded(req,res, next); });
 
 /** @return the user ID from the OAuth2 passport, null if not logged in */
 function GetUserID(req) {
@@ -263,7 +266,7 @@ function GetVoter(req, res, cb, FORCED) {
   }
 }
 
-function GetDebateEntry(did_or_debateEntity, cb) {
+function GetDebateEntry(did_or_debateEntity, cb, cachedLifetime) {
   var did, debateEntity;
   if(typeof did_or_debateEntity === 'string') {
     did = did_or_debateEntity; debateEntity = null;
@@ -274,14 +277,23 @@ function GetDebateEntry(did_or_debateEntity, cb) {
   if(debateEntity && debateEntity.dentry) { // if the debate is known, and it knows it's entry
     DS_read(T_DEBATE_ENTRY, debateEntity.dentry, function(err, entryData) { // find it.
       if(!entryData) { // if it isn't there, forget about that old entry and try this again.
-        debateEntity.dentry = undefined; GetDebateEntry(debateEntity, cb);
+        debateEntity.dentry = undefined; GetDebateEntry(debateEntity, cb, cachedLifetime);
       } else { cb(err, entryData); }
-    });
+    }, cachedLifetime);
   } else { // if the debate is not here...
     // find the debate entry if possible.
-    DS_listBy(T_DEBATE_ENTRY, {'did':did}, 1, null, function (err, entryData, cursor) {
+    var filter = {'did':did};
+    if(cachedLifetime <= 0) { filter.FORCED = true; }
+    DS_listBy(T_DEBATE_ENTRY, filter, 1, null, function (err, entryData, cursor) {
       if(entryData && entryData.length && entryData[0].did == did) {
         scope.dentry = entryData[0];
+      }
+      if(debateEntity){ // if there is a debate entry
+        // but the debate entry is not complete...
+        if(!(debateEntity.data && debateEntity.title && debateEntity.owner
+        && debateEntity.created && dentryEntity.modified && dentryEntity.id)) {
+          debateEntity = null; // the debate entry is invalid. this will load the correct one
+        }
       }
       // if there isn't a debate entry, we need to make one...
       waterfall([ function getTheDebate(callback) {
@@ -312,7 +324,7 @@ function GetDebateEntry(did_or_debateEntity, cb) {
         } else { callback(null); }
       }],function error(err){ cb(err, scope.dentry); }
       );
-    });
+    }, cachedLifetime);
   }
 }
 
@@ -689,7 +701,7 @@ function calculateResults(req, res, scope, whenFinished) {
       // get all of the vote data for this debate
       // TODO only select data
       if(scope.debate) {
-        DS_listBy(T_VOTE, {did:scope.debate.id}, 1, null, function (err, found, cursor) {scope.votes=found;callback(null);});
+        DS_listBy(T_VOTE, {did:scope.debate.id, FORCED:true}, 1, null, function (err, found, cursor) {scope.votes=found;callback(null);},0);
       } else {scope.votes=[];callback(null);}
     }, function calcResults(callback) {
       log("calculateReuslts: calcResults");
@@ -709,6 +721,7 @@ function calculateResults(req, res, scope, whenFinished) {
       }
       log("CLEAN VOTES: "+JSON.stringify(scope.cleanvotes));
       // calculate the results
+      log("--------CALCULATING");
       irv(scope.cleanvotes, null, -1, function(calcresults){scope.calcresults=calcresults;callback(null);});
     }, function cleanAndCommitData(callback) {
       log("calculateReuslts: cleanAndCommit");
@@ -755,10 +768,11 @@ function calculateResults(req, res, scope, whenFinished) {
         }
       }
       if(scope.debate) {
-      DS_update(T_DEBATE_RESULT, scope.dentry.result, 
-        {did:scope.dentry.did,data:scope.state}, function (err, resultingData){ 
-          scope.debate_result=resultingData; callback(null);
-        });
+        log("-----------------UPDATING RESULTS");
+        DS_update(T_DEBATE_RESULT, scope.dentry.result, 
+          {did:scope.dentry.did,data:scope.state}, function (err, resultingData){ 
+            scope.debate_result=resultingData; callback(null);
+          });
       } else {callback(null);}
     }, function notify(callback) {
       log("calculateReuslts: notify");
@@ -782,7 +796,9 @@ app.get('/result/:did', function(req, res, next) {
     }, function calculateResultsIfNeeded(callback) {
       log("DENTRY: "+JSON.stringify(scope.dentry));
       // if there are no results, or it's time for a new calculation of results
+      log("??????? resultID:"+scope.dentry.result+" lastResult:"+scope.dentry.lastresult+" lastVote:"+scope.dentry.lastvote+" "+(scope.dentry.lastresult < scope.dentry.lastvote));
       if(!scope.dentry.result || !scope.dentry.lastresult || scope.dentry.lastresult < scope.dentry.lastvote) {
+        log("RESULTS MUST BE RECALCULATED! resultID:"+scope.dentry.result+" lastResult:"+scope.dentry.lastresult+" lastVote:"+scope.dentry.lastvote);
         calculateResults(req, res, scope, callback);
       } else {
         DS_read(T_DEBATE_RESULT, scope.dentry.result, function(err, databaseresult) {
@@ -790,7 +806,7 @@ app.get('/result/:did', function(req, res, next) {
           // log("database result::::: "+JSON.stringify(databaseresult));
           scope.state=databaseresult.data;
           callback(err);
-        });
+        }, 5);
       }
     }, function header(callback) {
       // header with results
@@ -826,7 +842,10 @@ app.post(['/debate/:debateid','/debate'], function update (req, res, next) {
         if(err){ return callback(err); }
         callback(null);
       });
-    }, function getVoter(callback) { GetVoter(req, res, function(err,voter){scope.voter=voter;callback(err);});
+    }, function getVoter(callback) {
+      refreshDBAuthIfNeeded(req,res, function(){
+        GetVoter(req, res, function(err,voter){scope.voter=voter;callback(err);});
+      });
     }, function getDebate(callback) { 
       if(did) { // updating existing debate
         DS_read(T_DEBATE, did, function(err, debate){scope.debate=debate;callback(null);});
@@ -871,24 +890,37 @@ app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) 
   if(dat.did != req.params.did) {
     return async_waterfall_error("ERROR D-id in URL ("+req.params.did+") does not match D-id in data ("+dat.did+")", req, res, null, scope); }
   waterfall([
-    function getVoter(callback) { GetVoter(req, res, function(err,voter){scope.voter=voter;callback(err);});
+    function getVoter(callback) {
+      refreshDBAuthIfNeeded(req,res, function(){
+        GetVoter(req, res, function(err,voter){scope.voter=voter;callback(err);});
+      });
     }, function getEntry(callback) { 
+      log("GETTING DEBATE ENTRY");
       if(dat.dentry) {
-        var debate_entry_id = dat.dentry;
+        var debate_entry_id = dat.did;
         dat.dentry = null; delete dat.dentry; // remove the debate entry from the vote. it's non-standard!
         GetDebateEntry(debate_entry_id, function(err, entity) { scope.dentry=entity; callback(err); });
       } else { 
         GetDebateEntry(req.params.did, function(err, entity) { scope.dentry=entity; callback(err); });
       }
     }, function updateTheVote(callback) {
+      log("UPDATING THE VOTE "+JSON.stringify(dat));
       scope.isVotex = (req.url.indexOf("votex") >= 0 && scope.voter.id == scope.dentry.owner);
       if(!scope.isVotex && dat.data.ranks) { return callback("ERROR only debate owners can submit multiple votes."); }
       if(dat.vid != scope.voter.id) { return callback("ERROR user submitting vote for someone other than themselves"); }
       DS_update(T_VOTE, dat.id, dat, function (err, entity) { scope.vote=entity; callback(err); });
-    }, function finishedWithVoteSubmission(callback) { res.json({id:scope.vote.id}); callback(null);
+    }, function finishedWithVoteSubmission(callback) { 
+      log("VOTE IS ::::: "+JSON.stringify(scope.vote));
+      res.json({id:scope.vote.id});
+      DS_uncacheListBy(T_VOTE, {vid:scope.voter.id, 'did':dat.did}, 1, null, function(err){ 
+      // DS_read(T_VOTE, dat.id, function(err, voteInDb){
+      // log("VOTE IS ::::: "+JSON.stringify(voteInDb));
+        callback(null);
+      });
     }, function markLastVote(callback) {
-
+      var lastTime = scope.dentry.lastvote;
       scope.dentry.lastvote = Date.now();
+      log("UPDATING THE DEBATE ENTRY: "+scope.dentry.lastvote+" vs "+lastTime);
       DS_update(T_DEBATE_ENTRY, scope.dentry.id, scope.dentry, function(err, entity){callback(null);});
     }
   ], function error(err, result){ async_waterfall_error(err, req, res, result, scope); });
@@ -1113,7 +1145,7 @@ function DS_buildListByQuery(kind, keyFilters, limit, token) {
 * @param keyFilters table that looks like {property: uniqueID} or [property, operation, uniqueID, property, operation, uniqueID, ...]
 * if keyFilters has a SORTBY property, that will be removed as a filer, and used as an order to use.
 */
-function DS_listBy (kind, keyFilters, limit, token, cb) {
+function DS_listBy (kind, keyFilters, limit, token, cb, cachedLifetime) {
   var FORCED = keyFilters.FORCED;
   if(FORCED) { keyFilters.FORCED = undefined; }
   var q = DS_buildListByQuery(kind, keyFilters, limit, token, cb);
@@ -1129,7 +1161,11 @@ function DS_listBy (kind, keyFilters, limit, token, cb) {
           var hasMore = entities.length === (limit && nextQuery)? nextQuery.startVal : false;
           //cb(null, entities.map(DS_fromDatastore, kind), hasMore);
           var cached = {dat:entities.map(DS_fromDatastore, kind),next:hasMore};
-          DS_setCached(qid, cached, function (err){cb(null, cached.dat, cached.next);});
+          if(cachedLifetime > 0) {
+            DS_setCached(qid, cached, function (err){cb(null, cached.dat, cached.next);}, cachedLifetime);
+          } else {
+            cb(null, cached.dat, cached.next);
+          }
         });
       });
     }
@@ -1172,20 +1208,20 @@ function DS_update (kind, id, data, cb) {
     });
   });
 }
-function DS_read (kind, id, cb) {
+function DS_read (kind, id, cb, cachedLifetime) {
   log("DS_read "+kind+" "+id);
   var key = ds.key([kind, parseInt(id, 10)]);
   var qid = DS_UpdateIdString(kind,id);
   DS_getCached(qid, function (err,cached) {
-    if(cached) { cb(null,cached); }
+    if(cached && cachedLifetime > 0) { cb(null,cached); }
     else {
-      DS_ensureSession(function (){
+      DS_ensureSession(function () {
         ds.get(key, function (err, entity) {
           if (err) { log("DS_read: "+err); return cb(err); }
           if (!entity) { return cb({ code: 404, message: 'Not found' }); }
           //cb(null, DS_fromDatastore(entity, kind));
           var cached = DS_fromDatastore(entity, kind);
-          DS_setCached(qid, cached, function (err){cb(null,cached);});
+          DS_setCached(qid, cached, function (err){cb(null,cached);}, cachedLifetime);
         });
       });
     }
