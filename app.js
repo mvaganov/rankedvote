@@ -786,7 +786,6 @@ function calculateResults(req, res, scope, whenFinished) {
 }
 
 app.get('/result/:did', function(req, res, next) {
-  console.log("############################ REQUESTING RESULTS");
   var gid = ensureLoginGET(req, res); if(gid == null) { return; }
   var scope = {};
   waterfall([
