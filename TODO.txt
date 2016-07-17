@@ -1,27 +1,31 @@
 rank
 
 major features
->	public debates
-	list all debates in one long list, time-stamped. timestamp determined by when page is initially loaded
-	multiple pages of debates
-	sort debates by activity
-	option to add choices to some debates
-	vote flag to receive e-mails if choices are changed
-	drag-page-up to load more (will require removing footer?)
+	- about page
+		mission: improve human decision making with software
+		link to wikipedia Instant Runoff Voting
+	- public debates
+	- list all debates in one long list, time-stamped. timestamp determined by when page is initially loaded
+	- multiple pages of debates
+	- sort debates by activity
+	- option to add choices to some debates
+	- vote flag to receive e-mails if choices are changed
+	- drag-page-up to load more (will require removing footer?)
 
 debate admin:
 	X do not allow a debate to be submitted if more than one choice has the same ID.
 	X arbitrary vote addition
->	debate deletion
->	vote deletion
+	- shadow tutorial stops showing up after a vote is made successfully
+	> debate deletion
+	- vote deletion
 
 client cleanup
 	X graphical tutorial
 		X auto-detect dimensions of options and destination
->		link to vote after sucessful debate submission
->		error popups explaining why creating a debate isn't working
->		show sorting as part of tutorial
->		option to show/hide visual tutorial
+		X link to vote after sucessful debate submission
+		> error popups explaining why creating a debate isn't working
+		- show sorting as part of tutorial
+		- option to show/hide visual tutorial
 	X make simple html to act as common header block
 	X shared .css
 	X response messages from post calls
@@ -33,7 +37,7 @@ server cleanup
 	X cache database queries in memory
 
 security
->	minimum wait-time between debate creations and vote submissions per user, shown on client, enforced on server.
+	- minimum wait-time between debate creations and vote submissions per user, shown on client, enforced on server.
 
 google deploy:
 	X details: https://cloud.google.com/nodejs/getting-started/using-cloud-datastore#configure_settings
@@ -45,7 +49,7 @@ google deploy:
 FEATURE CREEP
 	X in debate creation, auto-create tokens by default, and have an option to show id field.
 	X have an HTML preview underneath the debate editor. use image tags instead of passing in an image URL
-	make an "expanded data" option for the choice elements, which can be shown/hidden
+	- make an "expanded data" option for the choice elements, which can be shown/hidden
 
 
 GCLOUD questions:
