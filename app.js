@@ -291,7 +291,7 @@ function GetDebateEntry(did_or_debateEntity, cb, cachedLifetime) {
       if(debateEntity){ // if there is a debate entry
         // but the debate entry is not complete...
         if(!(debateEntity.data && debateEntity.title && debateEntity.owner
-        && debateEntity.created && dentryEntity.modified && dentryEntity.id)) {
+        && debateEntity.created && debateEntity.modified && debateEntity.id)) {
           debateEntity = null; // the debate entry is invalid. this will load the correct one
         }
       }

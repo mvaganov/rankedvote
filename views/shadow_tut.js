@@ -58,7 +58,8 @@ var vec_magnitude=function(vec) {  return  Math.sqrt(vec.left*vec.left + vec.top
 var vec_divide  =function(vec, scalar){ return {left:vec.left/scalar,top:vec.top/scalar}; };
 var vec_multiply=function(vec, scalar){ return {left:vec.left*scalar,top:vec.top*scalar}; };
 // rect must have left/top. if rect does not have right/bottom, it must have width/height
-var rectLerp = function(obj, rect, endopacity, duration, fps, donefunction){
+var rectLerp = function(obj, rect, endopacity, duration, fps, donefunction) {
+  
   // do math to determine how the object rectangle should interpolate
   var delayBetweenFrames = 1000/fps;
   var o = getOffset(obj);
@@ -89,7 +90,7 @@ var rectLerp = function(obj, rect, endopacity, duration, fps, donefunction){
       var startopacity = obj.style.opacity;
       var diffOp = (endopacity - startopacity);
       var opacityEachFrame = diffOp / frameCount;
-      var lerpMotion= function(){
+      var lerpMotion= function() {
         o.left += TLmoveEachFrame.left;
         o.top += TLmoveEachFrame.top;
         o.right += BRmoveEachFrame.left;

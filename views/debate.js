@@ -145,6 +145,12 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
           try{
             var response = JSON.parse(xhr.responseText);
             responseElement.innerHTML += '<br>Debate number: '+response.id;
+            if(!$scope.state.id) {
+              var nextLoc = location.protocol+"//"+window.location.host+"/debate/"+response.id;
+              console.log("next location: "+nextLoc);
+              $scope.state.id = response.id;
+              window.location = nextLoc;
+            }
           }catch(e){
             responseElement.innerHTML += '<br>'+xhr.responseText;
           }
