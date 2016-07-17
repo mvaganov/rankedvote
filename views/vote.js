@@ -144,8 +144,12 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
           submitButton.innerHTML = "Thank you for your vote!";
           // create link to results
           var responseElement = ByID("response");
-          var response = JSON.parse(xhr.responseText);
-          responseElement.innerHTML += '<br>Vote receipt number: '+response.id;
+          try{
+            var response = JSON.parse(xhr.responseText);
+            responseElement.innerHTML += '<br>Vote receipt number: '+response.id;
+          }catch(e){
+            responseElement.innerHTML += '<br>'+xhr.responseText;
+          }
           document.cookie = "rank=";
         }
       };

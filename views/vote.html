@@ -1,0 +1,33 @@
+<style>
+  .i {height:{{state.data.imgh}};width:{{state.data.imgw}};display:{{state.data.imgdisp}};}
+</style>
+<h1>{{state.title}}</h1><p ng-bind-html="state.data.prompt"></p>
+<table border=0 class="maxwidth"><tr><td>
+  <span class="unslct">unselected</span>
+  <div ng-sortable="opts" class="choices unslct" id="THEMAINLIST">
+    <div ng-repeat="choice in state.data.candidates"><div class="rounded choice"><table><tr>
+      <td><img src="{{choice[2]}}" alt="{{choice[0]}}" class="i"></td>
+      <td><p ng-bind-html="choice[1]"></p></td>
+    </tr></table></div></div>
+  </div>
+</td><td>
+  <div class="maxwidth">
+    <span class="slcted">best choices, in order</span>
+    <div class="rounded chosen slcted" ng-sortable="opts" onclick="dragTutorial()" id="userChoices">
+      <div ng-repeat="choice in state.data.choices"><div class="rounded choice">
+        <table><tr>
+          <td>{{$index+1}}</td>
+          <td><img src="{{choice[2]}}" alt="{{choice[0]}}" class="i"></td>
+          <td><p ng-bind-html="choice[1]"></p></td></tr><tr>
+          </tr>
+        </table>
+      </div></div>
+    </div>
+  </div>
+</td></tr></table>
+<button ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt">
+  <h1>vote</h1></button>
+<br><div id="response"></div><br><br>
+<a id="reslink" ng-href="../result/{{state.id}}">see results</a><br>
+<img style="position:fixed;display:none;" src="../touch_128.png" id="hand" />
+<div style="position:fixed;display:none;border-radius:10px;border-style:solid;border-width:5px;margin:-5px;opacity:0;" id="demotag"></div>

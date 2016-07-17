@@ -645,39 +645,38 @@ CachedMadlibs.prototype.initFromFile = function(filepath, variableList, options,
 	const fs = require('fs');
 	fs.lstat(self.filepath, function(err, stats) {
 		self.mtime = stats.mtime;
-	});
-	self.variableList = variableList;
-	self.options = options;
-	var filedata = "";
-	serveFileByLine(filepath, options, function(line) {
-		filedata+=line; // per line
-	}, function(err) {
-		if(err) throw err; // on end (or error)
-		self.initialize(filedata, variableList);
-		if(callback) callback(err);
+		self.variableList = variableList;
+		self.options = options;
+		var filedata = "";
+		serveFileByLine(filepath, options, function(line) {
+			filedata+=line; // per line
+		}, function(err) {
+			if(err) throw err; // on end (or error)
+			self.initialize(filedata, variableList);
+			if(callback) callback(err);
+		});
 	});
 }
 
 CachedMadlibs.prototype.fillOut = function(variables, onComponent, cb) {
 	var self = this; // export this to callbacks
+	function reloadFileIfNeeded(callback) {
+		if(self.mtime || self.filepath) { // if this should be mirroring a file, check if the file has changed.
+			const fs = require('fs');
+			fs.lstat(self.filepath, function(err, stats) {
+				var now = stats.mtime.toString(), then = (self.mtime)?self.mtime.toString():null;
+				if(now != then) { // if the file changed, load up the new file, so that next time, this is accurate.
+					console.log("                     RELOADING "+self.filepath);
+					self.initFromFile(self.filepath, self.variableList, self.options, callback);
+				} else { return callback(null); }
+			});
+		} else { callback(null); }
+	}
 	var i=0;
-	var writeMadlibs = function() {
+	function writeMadlibs(err) {
+		if(err) { return cb(err); }
 		do{
-			if(!self.parsedData || i>=self.parsedData.length) {
-				var dataAtStart = self.parsedData;
-				if(self.mtime || self.filepath) { // if this should be mirroring a file, check if the file has changed.
-					const fs = require('fs');
-					fs.lstat(self.filepath, function(err, stats) {
-						var now = stats.mtime.toString(), then = (self.mtime)?self.mtime.toString():null;
-						if(now != then) { // if the file changed, load up the new file, so that next time, this is accurate.
-							self.initFromFile(self.filepath, self.variableList, self.options, null);
-						}
-					});
-				}
-				if(dataAtStart) return cb(null);
-				if(self.parsedData) return setTimeout(writeMadlibs,0);
-				return cb("dataproblem at "+self.filepath);
-			}
+			if(i>=self.parsedData.length) { return cb(null); }
 			onComponent(self.parsedData[i]);
 			i++;
 			if(i < self.parsedData.length) {
@@ -695,7 +694,7 @@ CachedMadlibs.prototype.fillOut = function(variables, onComponent, cb) {
 			}
 		}while(true);
 	};
-	writeMadlibs();
+	reloadFileIfNeeded(writeMadlibs);
 }
 
 /** TODO reasearch the following

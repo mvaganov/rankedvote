@@ -26,11 +26,14 @@ var writeFieldsIntoState = function(out_state, STATE_PREFIX) {
  * @param STATE_PREFIX a string that each element, whose state should be saved, starts with. Example: "STATE_"
  */
 var writeStateIntoFields = function(state, STATE_PREFIX) {
-  function containerSearch(dataSource, path) {
-    if(typeof dataSource === 'object' && dataSource.constructor !== Array) {
+  function containerSearch(dataSource, path, visitOnce) {
+    if(visitOnce.indexOf(dataSource) >= 0) { return; }
+    visitOnce.push(dataSource);
+    if(visitOnce.length > 1000) { console.log("too many visits...\n"+visitOnce); return; }
+    if(dataSource && typeof dataSource === 'object' && dataSource.constructor !== Array) {
       for (var key in dataSource) {
-        if (dataSource.hasOwnProperty(key)) {
-          containerSearch(dataSource[key], path+"."+key);
+        if (key[0] != '$' && dataSource.hasOwnProperty(key)) {
+         containerSearch(dataSource[key], path+"."+key, visitOnce);
         }
       }
     }
@@ -43,7 +46,8 @@ var writeStateIntoFields = function(state, STATE_PREFIX) {
       //else { console.log("missing "+path+" element"); }
     //}
   }
-  containerSearch(state, STATE_PREFIX);
+  var visitOnce = [];
+  containerSearch(state, STATE_PREFIX, visitOnce);
   // for (var key in state) {
   //   if (state.hasOwnProperty(key)) {
   //     var el = ByID(STATE_PREFIX+key);
