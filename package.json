@@ -1,15 +1,18 @@
 {
   "name": "rankedvote",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Instant Runoff Voting tool. Node.JS applications on Google Cloud Platform",
   "repository": "https://github.com/mvaganov/rankedvote",
   "private": true,
   "scripts": {
     "start": "node app.js",
     "monitor": "nodemon app.js",
+    "deploy": "gcloud app deploy"
+  },
+  "scripts-Graveyard":{
     "deploy": "gcloud preview app deploy app.yaml",
-    "mocha": "mocha test/index.js -t 30000",
     "lint": "semistandard \"**/*.js\"",
+    "mocha": "mocha test/index.js -t 30000",
     "test": "npm run lint && npm run mocha",
     "init-cloudsql": "node books/model-cloudsql.js"
   },
@@ -21,7 +24,7 @@
     }
   ],
   "license": "Apache Version 2.0",
-  "semistandard": {
+  "semistandard-Graveyard": {
     "globals": [
       "after",
       "afterEach",
@@ -30,18 +33,6 @@
       "describe",
       "it"
     ]
-  },
-  "dependencyGraveYard": {
-    "multer": "^1.1.0",
-    "mongodb": "^2.1.16",
-    "lodash": "^4.11.1",
-    "mysql": "^2.10.2",
-    "mocha": "^2.4.5",
-    "proxyquire": "^1.7.4",
-    "semistandard": "^7.0.5",
-    "sinon": "^1.17.3",
-    "supertest": "^1.2.0",
-    "prompt": "^1.0.0"
   },
   "dependencies": {
     "async": "^1.5.2",
@@ -56,6 +47,18 @@
     "nconf": "^0.8.4",
     "passport": "^0.3.2",
     "passport-google-oauth20": "^1.0.0"
+  },
+  "dependencies-GraveYard": {
+    "multer": "^1.1.0",
+    "mongodb": "^2.1.16",
+    "lodash": "^4.11.1",
+    "mysql": "^2.10.2",
+    "mocha": "^2.4.5",
+    "proxyquire": "^1.7.4",
+    "semistandard": "^7.0.5",
+    "sinon": "^1.17.3",
+    "supertest": "^1.2.0",
+    "prompt": "^1.0.0"
   },
   "devDependencies": {},
   "engines": {

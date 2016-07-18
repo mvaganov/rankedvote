@@ -13,7 +13,7 @@ function irv_validateCandidates(lists, callback) {
     if(list) {
       for(var i=0;i<list.length;++i) {
         var candidateID = list[i][0];
-        if(!candidateID || !candidateID.length) { if(callback) { callback("candidate "+i+" missing identifier"); } return false; }
+        if(!candidateID || !candidateID.length) { if(callback) { callback("candidate missing identifying text"); } return false; }
         if(candidateID.length > MAX_IDENTIFIER_LENGTH) {
           if(callback) { callback("candidate "+i+"'s' name is too long:"+candidateID.substring(0,MAX_IDENTIFIER_LENGTH)+"..."); }
           return false;

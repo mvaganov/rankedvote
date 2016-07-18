@@ -23,7 +23,7 @@ client cleanup
 	X graphical tutorial
 		X auto-detect dimensions of options and destination
 		X link to vote after sucessful debate submission
-		> error popups explaining why creating a debate isn't working
+		X error message explains why creating a debate isn't working
 		- show sorting as part of tutorial
 		- option to show/hide visual tutorial
 	X make simple html to act as common header block

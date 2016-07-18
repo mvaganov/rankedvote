@@ -877,6 +877,11 @@ app.post(['/debate/:debateid','/debate'], function update (req, res, next) {
         scope.dat.dentry = scope.dentryEntity.id;
         DS_update(T_DEBATE, scope.dat.id, scope.dat, function (err, debate) { scope.debate=debate; callback(err); });
       } else { callback(null); }
+    }, function updateDebateEntryTitleIfNeeded(callback) {
+      if(scope.debate.title != scope.dentryEntity.name) {
+        scope.dentryEntity.name = scope.debate.title;
+        DS_update(T_DEBATE_ENTRY, scope.dentryEntity.id, scope.dentryEntity, function (err, entity) { scope.dentryEntity=entity; callback(err); });
+      } else { callback(null); }
     }, function finished(callback) { res.json({id:scope.debate.id}); callback(null); }
   ], function error(err, result){ async_waterfall_error(err, req, res, result, scope); });
 });

@@ -7,8 +7,43 @@ function setStyle(property, value, element_ids) {
   }
 };
 
+function elementPulse(obj, times, duration){
+  var count = 0;
+  var delay = 100; //(duration / times) * absOpacityStep;
+  var absOpacityStep = delay / (duration / (2*times));//.25;
+  obj.style.opacity = 1.0;
+  var opacityStep = -absOpacityStep;
+  var minOpacity = 1/1024.0;
+  var visibility = 1;
+  var blinker = function(){
+    if(obj.style.opacity <= minOpacity){ opacityStep = absOpacityStep; }
+    if(obj.style.opacity >= 1){ opacityStep = -absOpacityStep; }
+    visibility += opacityStep;
+    obj.style.opacity = visibility;
+    count+= (0.5 * absOpacityStep);
+    if(count >= times){
+      obj.style.opacity = "";
+    } else {
+      setTimeout(blinker, delay); 
+    }
+  };
+  blinker();
+};
+
+function responsePulse(text, color) {
+  var responseElement = ByID("response");
+  var pre = "", post = "";
+  if(color) { pre="<span style=\"color:"+color+"\">"; post="</span>"; }
+  responseElement.innerHTML = pre+text+post;
+  elementPulse(responseElement, 3, 1000);
+}
+
 function generateIdentifiers(state) {
   function generateIDForGroup(list) {
+    // clear all of the identifiers first...
+    for(var i=0;i<list.length;++i) {
+        list[i][0] = '';
+    }
     var MAX_ID_LENGTH = 32;
     var htmlTagForChoices = [];
     function truncateText(text, MAX_ID_LENGTH) {
@@ -105,8 +140,9 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
     };
     $scope.refresh();
     $scope.submit = function() {
+      var responseElement = ByID("response");
       if(!$scope.state.title || !$scope.state.title.length) {
-        console.log("missing title");
+        responsePulse("missing title","#f00");
         return false;
       }
       if($scope.choiceID == "none") {
@@ -114,8 +150,8 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
         generateIdentifiers($scope.state);
       }
       if(!irv_validateCandidates([$scope.state.data.candidates, $scope.state.data.choices],
-        function(err){if(err){console.warn(err);}})) {
-        console.log("failed validation");
+        function(err){ if(err){responsePulse(err,"#f00");} })) {
+        // console.log("failed validation");
         return false;
       }
 
@@ -141,10 +177,9 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
           submitButton.disabled = true;
           submitButton.innerHTML = "Thank you for your vote!";
           // create link to results
-          var responseElement = ByID("response");
           try{
             var response = JSON.parse(xhr.responseText);
-            responseElement.innerHTML += '<br>Debate number: '+response.id;
+            responseElement.innerHTML = '<br>Debate number: '+response.id;
             if(!$scope.state.id) {
               var nextLoc = location.protocol+"//"+window.location.host+"/debate/"+response.id;
               console.log("next location: "+nextLoc);
@@ -152,7 +187,7 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
               window.location = nextLoc;
             }
           }catch(e){
-            responseElement.innerHTML += '<br>'+xhr.responseText;
+            responseElement.innerHTML = '<br>'+xhr.responseText;
           }
           document.cookie = "debate=";
         }

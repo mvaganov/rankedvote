@@ -3,7 +3,7 @@
   .imgdisp {display:{{state.data.imgdisp}};}
   .ciddisp {display:{{choiceID}};}
 </style>
-<input id="SCOPE.state.title" placeholder="title (required)" class="maxwidth" onkeyup="SCOPE.state.title=this.value;"></input><br>
+<input id="SCOPE.state.title" placeholder="title (required)" class="maxwidth" onkeyup="SCOPE.state.title=this.value;" style="font-size:30px;"></input><br>
 <textarea rows=4 id="SCOPE.state.data.prompt" placeholder="prompt (optional)" class="maxwidth" onkeyup="SCOPE.state.data.prompt=this.value;">If your top choice could not possibly win, your vote automatically transfers to the next choice.</textarea><br>
 <div ng-sortable="opts" id="THEMAINLIST" class="choices">
   <div ng-repeat="choice in state.data.candidates"><div class="rounded vbuffered"><table><tr>
@@ -91,8 +91,8 @@ end preview
 <button ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt">
   <h1>submit for debate</h1>
 </button>
-<br><div id="response"></div>
 <br>
+<br><div id="response"></div>
 <br>
 <table class="maxwidth" ng-if="state.id"><tr><td width=33%>
   <a id="reslink" ng-href="../result/{{state.id}}">see results</a>
