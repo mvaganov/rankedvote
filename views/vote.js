@@ -38,19 +38,21 @@ var shallowArrayCopy = function(arr) {
 angular.module('vote', ['ng-sortable', 'ngSanitize'])
   .controller('voteController', ['$scope', function ($scope) {
     SCOPE = $scope;
-    $scope.opts = {
-      group: 'choices',
-      animation: 150,
-      onEnd: function(evt){
-        if(putBackEscapees($scope.required, $scope.state.data.choices, [$scope.state.data.candidates]) > 0){
-          setTimeout(function(){
-            var list = ByID("userChoices");
-            target = list.children[list.children.length-1];
-          }, .01);
-        }
-      }
-    };
     $scope.state = RankedVote_servedData;
+    if($scope.state.data.votability!='closed') {
+      $scope.opts = {
+        group: 'choices',
+        animation: 150,
+        onEnd: function(evt){
+          if(putBackEscapees($scope.required, $scope.state.data.choices, [$scope.state.data.candidates]) > 0){
+            setTimeout(function(){
+              var list = ByID("userChoices");
+              target = list.children[list.children.length-1];
+            }, .01);
+          }
+        }
+      };
+    }
     // TODO have some smarter variable to determine what is a required choice...
     $scope.required = shallowArrayCopy($scope.state.data.choices);
 
@@ -163,7 +165,7 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
       document.cookie = "rank=" + submisison;
       xhr.send();
     }
-    if($scope.state.data.candidates.length > 0){
+    if($scope.state.data.candidates.length > 0 && $scope.state.data.votability!='closed' && !$scope.state.rank){
       setTimeout(function(){
       dragTutorial(ByID("THEMAINLIST"), ByID("userChoices"), ByID("hand"), ByID("demotag"));
       },10);

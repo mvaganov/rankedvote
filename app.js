@@ -786,11 +786,11 @@ function calculateResults(req, res, scope, whenFinished) {
       // get all of the vote data for this debate
       // TODO only select data
       if(scope.debate) {
-        DS_listBy(T_VOTE, {did:scope.debate.id, FORCED:true}, 1, null, function (err, found, cursor) {scope.votes=found;callback(null);},0);
+        DS_listBy(T_VOTE, {did:scope.debate.id, FORCED:true}, -1, null, function (err, found, cursor) {scope.votes=found;callback(null);},0);
       } else {scope.votes=[];callback(null);}
     }, function calcResults(callback) {
       log("calculateReuslts: calcResults");
-      log("Votes: "+JSON.stringify(scope.votes));
+      log("Votes: ("+scope.votes.length+")"+JSON.stringify(scope.votes));
       // ensure the votes are properly formatted
       scope.cleanvotes = [];
       for(var i=0;i<scope.votes.length;++i){
@@ -879,7 +879,7 @@ app.get('/result/:did', function(req, res, next) {
         if(entity.vis == 'deleted' || entity.vis == 'hidden') { res.redirect("/vote"); } else {
           scope.dentry=entity; callback(err);
         }
-      });
+      }, 0);
     }, function calculateResultsIfNeeded(callback) {
       // log("DENTRY: "+JSON.stringify(scope.dentry));
       // if there are no results, or it's time for a new calculation of results
@@ -888,6 +888,7 @@ app.get('/result/:did', function(req, res, next) {
         log("RESULTS MUST BE RECALCULATED! resultID:"+scope.dentry.result+" lastResult:"+scope.dentry.lastresult+" lastVote:"+scope.dentry.lastvote);
         calculateResults(req, res, scope, callback);
       } else {
+        log("RESULTS not recalculated. resultID:"+scope.dentry.result+" lastResult:"+scope.dentry.lastresult+" lastVote:"+scope.dentry.lastvote);
         DS_read(T_DEBATE_RESULT, scope.dentry.result, function(err, databaseresult) {
           scope.debate_result = databaseresult;
           // log("database result::::: "+JSON.stringify(databaseresult));

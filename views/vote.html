@@ -24,8 +24,10 @@
       </div></div>
     </div>
 </td></tr></table>
+<div ng-if="state.data.votability!='closed'">
 <button ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt"><!--TODO disable if the debate is closed.-->
   <h1>vote</h1></button>
+</div>
 <br><div id="response"></div><br><br>
 <a id="reslink" ng-href="../result/{{state.id}}">see results</a><br>
 <img style="position:fixed;display:none;" src="../touch_128.png" id="hand" />

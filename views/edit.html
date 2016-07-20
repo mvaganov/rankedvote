@@ -24,13 +24,12 @@
   <div ng-repeat="choice in state.data.candidates"><div class="rounded vbuffered"><table><tr>
     <td rowspan=2><input placeholder="identifier" name="{{$index}}" style="max-width:80px;" id="cid{{$index}}" class="ciddisp"
       onkeyup="SCOPE.state.data.candidates[parseInt(this.name)][0]=this.value;" value="{{choice[0]}}"></input></td>
-    <td rowspan=2>&nbsp;&nbsp;<img class="i" src="{{choice[2]}}" alt="{{choice[0]}}">&nbsp;&nbsp;<br>
+    <td rowspan=2>&nbsp;&nbsp;&nbsp;&nbsp;<br>
     </td>
     <td class="maxwidth"><input placeholder="choice text" name="{{$index}}" class="maxwidth" style="min-width:80px" onkeyup="SCOPE.state.data.candidates[parseInt(this.name)][1]=this.value;" value="{{choice[1]}}"></input></td>
     <!-- TODO make a settings option: delete, chosen by default, unchosen by default, preferred color-->
     <td rowspan=2><button style="color:red;" name="{{$index}}" onclick="SCOPE.state.data.candidates.splice(parseInt(this.name),1);SCOPE.$digest();">x</button></td>
   </tr><tr><td>
-    <input placeholder="image URL" name="{{$index}}" onkeyup="SCOPE.state.data.candidates[parseInt(this.name)][2]=this.value;" value="{{choice[2]}}" class="imgdisp maxwidth"></input></td>
     <!-- TODO color -->
   </tr></table></div></div>
 </div>
@@ -55,14 +54,15 @@
     <option value="result">Order candidates by current results</option>
 -->
   </select><br>
+
 <!--
-  <select id="SCOPE.state.imgdisp" onchange="SCOPE.state.data.imgdisp=this.value;setStyle('display',this.value,['STATE.data.imgw','STATE.data.imgh']);SCOPE.$digest();">
-    <option value="none">no image displayed with choice</option>
-    <option value="">choices must have image</option>
+  <select id="SCOPE.state.data.userSuggestion" onchange="SCOPE.state.data.userSuggestion=this.value;SCOPE.$digest();">
+    <option value=""    >vote only - voters cant offer additional suggestions</option>
+    <option value="open">open - voters can offer any number of suggestions</option>
+    <option value="one" >one - voters can offer just one suggestion</option>
   </select><br>
-  <input id="SCOPE.state.data.imgw" style="display:none" placeholder="image width in pixels" onkeyup="SCOPE.state.data.imgw=this.value;SCOPE.$digest();"></input>
-  <input id="SCOPE.state.data.imgh" style="display:none" placeholder="image height in pixels" onkeyup="SCOPE.state.data.imgh=this.value;SCOPE.$digest();"></input>
 -->
+
 <!--
   <select id="jsoninsertoption" onchange="setStyle('display',this.value,['jsoninsert','jsoninsertbutton']);SCOPE.refresh();SCOPE.$digest();">
     <option value="none">hide JSON editor</option>
@@ -80,7 +80,6 @@ preview below
   <span class="unslct">unselected</span>
   <div class="choices unslct" id="THEMAINLIST"><!--ng-sortable="opts"-->
     <div ng-repeat="choice in state.data.candidates"><div class="rounded choice"><table><tr>
-      <td><img src="{{choice[2]}}" alt="{{choice[0]}}" class="i"></td>
       <td><p ng-bind-html="choice[1]"></p></td>
     </tr></table></div></div>
   </div>
@@ -91,7 +90,6 @@ preview below
       <div ng-repeat="choice in state.data.choices"><div class="rounded choice">
         <table><tr>
           <td>{{$index+1}}</td>
-          <td><img src="{{choice[2]}}" alt="{{choice[0]}}" class="i"></td>
           <td><p ng-bind-html="choice[1]"></p></td></tr><tr>
           </tr>
         </table>

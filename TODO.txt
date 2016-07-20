@@ -4,6 +4,8 @@ major features
 	X about page
 		mission: improve human decision making with software
 		link to wikipedia Instant Runoff Voting
+	- user page informs how many debates and votes you have made
+	- edit user page, including changing name
 	X public debates
 	- list all debates in one long list, time-stamped. timestamp determined by when page is initially loaded
 	- multiple pages of debates
@@ -29,7 +31,7 @@ client cleanup
 	X make simple html to act as common header block
 	X shared .css
 	X response messages from post calls
-	- properly link to "https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js", // use this one for more verbose warnings
+	- properly link to "https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js",
 	- properly link to "https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular-sanitize.min.js",
 
 server cleanup
