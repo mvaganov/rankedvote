@@ -1,0 +1,46 @@
+#gcloud preview datastore create-indexes index.yaml
+#datastore cleanup-indexes
+indexes:
+
+# - kind: debate
+#  properties:
+#  - name: owner
+#  - name: modified
+#    direction: desc
+#  - name: title
+#  - name: dentry
+
+# check all user's votes
+- kind: vote
+  ancestor: no
+  properties:
+  - name: vid
+  - name: modified
+    direction: desc
+
+# check public debates
+- kind: debateentry
+  ancestor: no
+  properties:
+  - name: vis
+  - name: modified
+    direction: desc
+
+# - kind: result
+#   properties:
+#   - name: modified
+#     direction: desc
+#   - name: did
+
+# - kind: vote
+#   properties:
+#   - name: modified
+#     direction: desc
+#   - name: did
+#   - name: vid
+
+# - kind: voter
+#   properties:
+#   - name: email
+#   - name: name
+#   - name: gid

@@ -1,13 +1,13 @@
 rank
 
 major features
-	- about page
+	X about page
 		mission: improve human decision making with software
 		link to wikipedia Instant Runoff Voting
-	- public debates
+	X public debates
 	- list all debates in one long list, time-stamped. timestamp determined by when page is initially loaded
 	- multiple pages of debates
-	- sort debates by activity
+	X sort debates by activity
 	- option to add choices to some debates
 	- vote flag to receive e-mails if choices are changed
 	- drag-page-up to load more (will require removing footer?)
@@ -16,8 +16,8 @@ debate admin:
 	X do not allow a debate to be submitted if more than one choice has the same ID.
 	X arbitrary vote addition
 	- shadow tutorial stops showing up after a vote is made successfully
-	> debate deletion
-	- vote deletion
+	X debate deletion
+	> vote deletion
 
 client cleanup
 	X graphical tutorial
@@ -29,8 +29,11 @@ client cleanup
 	X make simple html to act as common header block
 	X shared .css
 	X response messages from post calls
+	- properly link to "https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js", // use this one for more verbose warnings
+	- properly link to "https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular-sanitize.min.js",
 
 server cleanup
+	X put includes in html, not app.js
 	X rename new.html to debate.html, and generator.js to debate.js
 	X remove jade and bootstrap dependencies
 	X refactor app.js

@@ -1,3 +1,4 @@
+<!--{includes:["angular.min.js","angular-sanitize.min.js","Sortable.js","ng-sortable.js","shadow_tut.js","stringbonus.js","common.js","vote.js"],title:"Vote"}-->
 <style>
   .i {height:{{state.data.imgh}};width:{{state.data.imgw}};display:{{state.data.imgdisp}};}
 </style>
@@ -10,8 +11,7 @@
       <td><p ng-bind-html="choice[1]"></p></td>
     </tr></table></div></div>
   </div>
-</td><td>
-  <div class="maxwidth">
+</td><td style="vertical-align:text-top">
     <span class="slcted">best choices, in order</span>
     <div class="rounded chosen slcted" ng-sortable="opts" onclick="dragTutorial()" id="userChoices">
       <div ng-repeat="choice in state.data.choices"><div class="rounded choice">
@@ -23,9 +23,8 @@
         </table>
       </div></div>
     </div>
-  </div>
 </td></tr></table>
-<button ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt">
+<button ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt"><!--TODO disable if the debate is closed.-->
   <h1>vote</h1></button>
 <br><div id="response"></div><br><br>
 <a id="reslink" ng-href="../result/{{state.id}}">see results</a><br>

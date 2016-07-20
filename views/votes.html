@@ -1,5 +1,4 @@
-<table border=0 class="maxwidth"><tr><td>
-    <div ng-repeat="vote in state.votes">
-        [<a href="../vote/{{vote.did}}">{{vote.name}}</a>]</br>
-    </div>
+<!--{includes:["angular.min.js", "votes.js"],title:"My Votes"}-->
+<table border=0 class="maxwidth"><tr ng-repeat="vote in state.votes"><td>
+  <a href="../vote/{{vote.did}}">{{vote.name}}</a> </td><td>{{convertToDate(vote.modified)}}</td>
 </td></tr></table>

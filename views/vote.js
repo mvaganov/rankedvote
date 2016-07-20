@@ -148,6 +148,11 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
             var response = JSON.parse(xhr.responseText);
             responseElement.innerHTML += '<br>Vote receipt number: '+response.id;
           }catch(e){
+            var redirectHead = "redirect:";
+            if(xhr.responseText.startsWith(redirectHead)) {
+              window.location = xhr.responseText.substring(redirectHead.length);
+              return;
+            }
             responseElement.innerHTML += '<br>'+xhr.responseText;
           }
           document.cookie = "rank=";

@@ -1,8 +1,23 @@
+<!--{includes:["angular.min.js","angular-sanitize.min.js","Sortable.js","ng-sortable.js","common.js","stringbonus.js","irv_validate.js","jsonstate.js", "edit.js"],title:"Edit Debate"}-->
 <style>
   .i {height:{{state.data.imgh}};width:{{state.data.imgw}};display:{{state.data.imgdisp}};}
   .imgdisp {display:{{state.data.imgdisp}};}
   .ciddisp {display:{{choiceID}};}
 </style>
+<select id="SCOPE.state.data.visibility" onchange="SCOPE.state.data.visibility=this.value;">
+  <option value="private">private - not in a directory, but the link can be shared</option>
+  <option value="public" >public - a link can be found in the public debate list</option>
+  <option value="hidden" >hidden - can no longer be accessed at all</option>
+  <option value="deleted" ng-if="state.id">deleted - hidden access, will be removed soon</option>
+</select><br>
+<select id="SCOPE.state.data.votability" onchange="SCOPE.state.data.votability=this.value;">
+  <option value="anyone" >anyone - anyone can vote or change their vote</option>
+  <option value="closed" >closed - no additional voting possible, results only</option>
+<!--
+    <option value="exclusive">debate is exclusive - only specific users can see it</option>
+    <option value="admin">votes are admin approved - an administrator allows your vote to count</option>
+-->
+</select><br>
 <input id="SCOPE.state.title" placeholder="title (required)" class="maxwidth" onkeyup="SCOPE.state.title=this.value;" style="font-size:30px;"></input><br>
 <textarea rows=4 id="SCOPE.state.data.prompt" placeholder="prompt (optional)" class="maxwidth" onkeyup="SCOPE.state.data.prompt=this.value;">If your top choice could not possibly win, your vote automatically transfers to the next choice.</textarea><br>
 <div ng-sortable="opts" id="THEMAINLIST" class="choices">
@@ -21,28 +36,25 @@
 </div>
 <button class="rounded add maxwidth" ng-click="state.data.candidates.push(['','','']);"><h2>+ add choice&nbsp;&nbsp;</h2></button>
 <br><br>
+  
 <select id="optiondisp" onchange="setStyle('display',this.value,['debateoptions']);SCOPE.$digest();">
-  <option value="none">debate options hidden</option>
-  <option value="">debate options shown</option>
+  <option value="none">advanced options hidden</option>
+  <option value="">advanced options shown</option>
 </select><br>
 
 <div style="display:none" id="debateoptions" class="rounded">
-  <select id="SCOPE.state.data.visibility" onchange="SCOPE.state.data.visibility=this.value;">
-    <option value="hidden">debate is hidden - not in a directory, but the link can be shared</option>
-    <option value="public">debate is public - can be found in the debate directory (WIP)</option>
-<!--
-    <option value="invite">invite only - TODO only specific users are allowed to see it</option>
-    <option value="close">closed public - TODO refuse votes by allow results to be seen</option>
-    <option value="disable">disable - TODO hide and refuse votes</option>
-    <option value="admin">admin approved - TODO an administrator allows your vote to count</option>
--->
-  </select><br>
-  
   <select id="SCOPE.choiceID" onchange="SCOPE.choiceID=this.value;SCOPE.$digest();">
     <option value="none">use automatic choice identifiers</option>
     <option value="">customize choice identifiers</option>
   </select><br>
 
+  <select id="SCOPE.state.data.candidateOrder" onchange="SCOPE.state.data.candidateOrder=this.value;SCOPE.$digest();">
+    <option value=""      >Randomize candidate order during vote</option>
+    <option value="fixed" >Use exactly this order during vote</option>
+<!--
+    <option value="result">Order candidates by current results</option>
+-->
+  </select><br>
 <!--
   <select id="SCOPE.state.imgdisp" onchange="SCOPE.state.data.imgdisp=this.value;setStyle('display',this.value,['STATE.data.imgw','STATE.data.imgh']);SCOPE.$digest();">
     <option value="none">no image displayed with choice</option>
@@ -51,11 +63,13 @@
   <input id="SCOPE.state.data.imgw" style="display:none" placeholder="image width in pixels" onkeyup="SCOPE.state.data.imgw=this.value;SCOPE.$digest();"></input>
   <input id="SCOPE.state.data.imgh" style="display:none" placeholder="image height in pixels" onkeyup="SCOPE.state.data.imgh=this.value;SCOPE.$digest();"></input>
 -->
+<!--
   <select id="jsoninsertoption" onchange="setStyle('display',this.value,['jsoninsert','jsoninsertbutton']);SCOPE.refresh();SCOPE.$digest();">
     <option value="none">hide JSON editor</option>
     <option value="">show JSON editor</option>
   </select><input id="jsoninsertbutton" type='button' value="use the following JSON" onclick='insertJSON();' style="display:none"></input><br>
   <textarea id="jsoninsert" cols=40 rows=10 class="maxwidth" style="display:none;font-family:courier;" placeholder="code for insert JSON (optional)"></textarea>
+-->
 </div>
 <br>
 <hr>
@@ -89,15 +103,17 @@ preview below
 end preview
 <hr>
 <button ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt">
-  <h1>submit for debate</h1>
+  <h1>submit</h1>
 </button>
 <br>
 <br><div id="response"></div>
 <br>
-<table class="maxwidth" ng-if="state.id"><tr><td width=33%>
+<table class="maxwidth" ng-if="state.id"><tr><td width=25%>
   <a id="reslink" ng-href="../result/{{state.id}}">see results</a>
-</td><td style="text-align:center" width=33%>
+</td><td style="text-align:center" width=25%>
+  <a id="adminvotelink" ng-href="../vote/{{state.id}}">vote</a>
+</td><td style="text-align:center" width=25%>
   <a id="adminvotelink" ng-href="../votex/{{state.id}}">admin vote</a>
-</td><td style="text-align:right" width=33%>
+</td><td style="text-align:right" width=25%>
   <a id="dellink" ng-href="../delete/{{state.id}}">delete debate</a>
 </td></tr></table>

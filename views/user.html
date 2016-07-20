@@ -1,0 +1,19 @@
+<!--{includes:["angular.min.js", "common.js", "user.js"],title:"Personal"}-->
+<h3>Owned Debates</h3>
+<table border=0 class="maxwidth">
+  <tr ng-repeat="debate in state.debates">
+    <td>{{debate.vis}}</td>
+    <td>{{debate.vot}}</td>
+    <td width=100%><a href="../edit/{{debate.did}}">{{debate.name}}</a></td>
+    <td><a href="../result/{{debate.did}}">results</a></td>
+  </tr>
+  <tr>
+  	<td colspan=9>+ (<a href="../edit/public">new debate</a>)</td></tr>
+</table>
+<h3>Coming soon: Editing {{state.name}}'s Profile</h3>
+<table><tr>
+  <tr><td>edit user name</td></tr>
+  <tr><td>edit user image</td></tr>
+  <tr><td>connect with friends via e-mail</td></tr>
+  <tr><td>manage notifications</td></tr>
+</tr></table>

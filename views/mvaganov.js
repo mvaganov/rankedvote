@@ -620,6 +620,42 @@ CachedMadlibs.prototype.initialize = function(fulldata, variableList) {
 	var whichVariable = -1, whereIsIt, cursor = 0;
 	var  parseData;
 	this.parsedData = [];
+	var commentTypes = [{start:"<!--", end:"-->"}, {start:"/*",end:"*/"}];
+	for(var i=0;i<commentTypes.length;++i) {
+		var commentStart = commentTypes[i].start, commentEnd = commentTypes[i].end;
+		// if this starts with a comment...
+		var firstCommentIndex = fulldata.indexOf(commentStart);
+		// console.log("first comment index: "+firstCommentIndex+" for "+this.filepath);
+		if(firstCommentIndex == 0) {
+			// find the end of the comment and remove it
+			var commentEndIndex = fulldata.indexOf(commentEnd);
+			// parse that comment as JSON metadata
+			var metadata = fulldata.substring(commentStart.length, commentEndIndex);
+			try{
+				// console.log("FOUND METADATA: "+metadata);
+				var result; eval("result="+metadata); this.meta = result;
+				// console.log("PARSED METADATA:\n"+JSON.stringify(this.meta, null, 2));
+			}catch(err){
+				console.log("FAILED TO PARSE METADATA\n"+err+"\n"+metadata);
+			}
+			// pull the metadata out of the fulldata
+			fulldata = fulldata.substring(commentEndIndex+commentEnd.length);
+			break;
+		}
+	}
+	if(!variableList) {
+		variableList = this.meta.variables;
+		if(typeof variableList === 'string') { variableList = [variableList]; }
+		if(variableList && variableList.constructor !== Array) {
+			variableList = [];
+			for(var k in this.meta.variables) { variableList.push(this.meta.variables[k]); }
+		}
+		self.variableList = variableList;
+	}
+	if(!variableList) {
+		this.parsedData.push(fulldata);
+	} else
+	// separate out the text from the variables
 	do{
 		parseData = fulldata.indexOfOneOfThese(variableList, cursor);
 		whereIsIt = parseData[0];
@@ -644,17 +680,19 @@ CachedMadlibs.prototype.initFromFile = function(filepath, variableList, options,
 	self.filepath = filepath;
 	const fs = require('fs');
 	fs.lstat(self.filepath, function(err, stats) {
-		self.mtime = stats.mtime;
-		self.variableList = variableList;
-		self.options = options;
-		var filedata = "";
-		serveFileByLine(filepath, options, function(line) {
-			filedata+=line; // per line
-		}, function(err) {
-			if(err) throw err; // on end (or error)
-			self.initialize(filedata, variableList);
-			if(callback) callback(err);
-		});
+		if(stats) {
+			self.mtime = stats.mtime;
+			self.variableList = variableList;
+			self.options = options;
+			var filedata = "";
+			serveFileByLine(filepath, options, function(line) {
+				filedata+=line; // per line
+			}, function(err) {
+				if(err) throw err; // on end (or error)
+				self.initialize(filedata, variableList);
+				if(callback) callback(err);
+			});
+		} else { callback(err); }
 	});
 }
 
@@ -666,7 +704,7 @@ CachedMadlibs.prototype.fillOut = function(variables, onComponent, cb) {
 			fs.lstat(self.filepath, function(err, stats) {
 				var now = stats.mtime.toString(), then = (self.mtime)?self.mtime.toString():null;
 				if(now != then) { // if the file changed, load up the new file, so that next time, this is accurate.
-					console.log("                     RELOADING "+self.filepath);
+					// console.log("                     RELOADING "+self.filepath);
 					self.initFromFile(self.filepath, self.variableList, self.options, callback);
 				} else { return callback(null); }
 			});
@@ -680,7 +718,8 @@ CachedMadlibs.prototype.fillOut = function(variables, onComponent, cb) {
 			onComponent(self.parsedData[i]);
 			i++;
 			if(i < self.parsedData.length) {
-				var result = variables[self.parsedData[i]];
+				var v = self.parsedData[i];
+				var result = variables[v];
 				i++;
 				if(typeof result === 'function') {
 					return result(function(err, output){
@@ -689,6 +728,7 @@ CachedMadlibs.prototype.fillOut = function(variables, onComponent, cb) {
 						setTimeout(writeMadlibs, 0);
 					});
 				} else {
+					if(!result && typeof result !== 'string') { result = "ERROR: \""+v+"\""; }
 					onComponent(result);
 				}
 			}

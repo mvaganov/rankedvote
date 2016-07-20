@@ -136,7 +136,9 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
     writeStateIntoFields($scope, "SCOPE");
     $scope.refresh = function(){
       var specialCodeInput = ByID("jsoninsert");
-      specialCodeInput.value = JSON.stringify($scope.state, null, 2);
+      if(specialCodeInput) {
+        specialCodeInput.value = JSON.stringify($scope.state, null, 2);
+      }
     };
     $scope.refresh();
     $scope.submit = function() {
@@ -174,17 +176,19 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
           console.log("sent");
           // hide vote button
           var submitButton = ByID("sbmt");
-          submitButton.disabled = true;
-          submitButton.innerHTML = "Thank you for your vote!";
+          // submitButton.disabled = true;
+          // submitButton.innerHTML = "Thank you for your vote!";
           // create link to results
           try{
             var response = JSON.parse(xhr.responseText);
             responseElement.innerHTML = '<br>Debate number: '+response.id;
             if(!$scope.state.id) {
-              var nextLoc = location.protocol+"//"+window.location.host+"/debate/"+response.id;
+              var nextLoc = location.protocol+"//"+window.location.host+"/edit/"+response.id;
               console.log("next location: "+nextLoc);
               $scope.state.id = response.id;
               window.location = nextLoc;
+            } else {
+              responsePulse("submission received","#0f0");
             }
           }catch(e){
             responseElement.innerHTML = '<br>'+xhr.responseText;
