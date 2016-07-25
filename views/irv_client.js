@@ -26,7 +26,7 @@ var IRV_deserializeVisualizationBlocData = function (serialized, x, y, width, he
   IRV_convertVisualizationBlocIds(deserialized.data, deserialized.candidates);
   if(height < 0) height = deserialized.data.length*30;
   IRV_createVisualizationView(deserialized.data, deserialized.colorMap, deserialized.numVotes, 
-    0, 0, 500, height, graphicOutput);
+    0, 0, width, height, graphicOutput);
 };
 
 /**

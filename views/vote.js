@@ -8,6 +8,49 @@ var simplifiedListOfListsToList = function(listOfLists) {
   return result;
 };
 
+var toggleUserChoices = function() {
+  var list = SCOPE.state.data.addedCandidate;
+  if(!list) return;
+  if(SCOPE.userChoicesOn) {
+    function removeAddedCandidateFrom(clist) {
+      for(var i=clist.length-1;i>=0;--i) {
+        if(clist[i][2] && clist[i][2] != '') { // if it is user created
+          // console.log("removing "+clist[i][1]);
+          // for(var j=0;j<list.length;++j) {
+            // if(list[j] == clist[i]) { // and it is in the addedCandidate list
+              clist.splice(i,1); // remove it from this list
+            // }
+          // }
+        }
+      }
+    }
+    // go through each candidate or choice, and remove ones that are in the list
+    removeAddedCandidateFrom(SCOPE.state.data.candidates);
+    removeAddedCandidateFrom(SCOPE.state.data.choices);
+    SCOPE.userChoicesOn = false;
+  } else {
+    var toPullFrom = JSON.parse(JSON.stringify(list));
+    // put user choices into the choices list first, in the order defined by the rank
+    var rank = SCOPE.state.rank;
+    if(rank) {
+      for(var i=0;i<rank.length;++i) {
+        var whatIndexInList = -1;
+        for(var j=0;j<toPullFrom.length;++j) { if(toPullFrom[j][0] == rank[i]) {whatIndexInList = j; break; } }
+        if(whatIndexInList >= 0) {
+          var item = toPullFrom[whatIndexInList];
+          toPullFrom.splice(whatIndexInList,1);
+          SCOPE.state.data.choices.splice(i,0,item);
+        }
+      }
+    }
+    // put whatever choices are left at the end of the candidates
+    for(var i=0;i<toPullFrom.length;++i) {
+      SCOPE.state.data.candidates.push(toPullFrom[i]);
+    }
+    SCOPE.userChoicesOn = true;
+  }
+}
+
 var moveElementFromAtoB = function(Element, index, A, B){
   A.splice(index,1);
   B.push(Element);
@@ -35,10 +78,81 @@ var shallowArrayCopy = function(arr) {
   return copy;
 };
 
+function elementPulse(obj, times, duration){
+  var count = 0;
+  var delay = 100; //(duration / times) * absOpacityStep;
+  var absOpacityStep = delay / (duration / (2*times));//.25;
+  obj.style.opacity = 1.0;
+  var opacityStep = -absOpacityStep;
+  var minOpacity = 1/1024.0;
+  var visibility = 1;
+  var blinker = function(){
+    if(obj.style.opacity <= minOpacity){ opacityStep = absOpacityStep; }
+    if(obj.style.opacity >= 1){ opacityStep = -absOpacityStep; }
+    visibility += opacityStep;
+    obj.style.opacity = visibility;
+    count+= (0.5 * absOpacityStep);
+    if(count >= times){
+      obj.style.opacity = "";
+    } else {
+      setTimeout(blinker, delay); 
+    }
+  };
+  blinker();
+};
+
+function responsePulse(text, color) {
+  var responseElement = ByID("response");
+  var pre = "", post = "";
+  if(color) { pre="<span style=\"color:"+color+"\">"; post="</span>"; }
+  responseElement.innerHTML = pre+text+post;
+  elementPulse(responseElement, 3, 1000);
+}
+
+function log(str) {console.log(str);}
+
+function candidateNameFrom(htmlText) {
+  return htmlText.substring(0,Math.min(32,htmlText.length));
+}
+
 angular.module('vote', ['ng-sortable', 'ngSanitize'])
   .controller('voteController', ['$scope', function ($scope) {
     SCOPE = $scope;
+    $scope.creatorID = creatorID;
     $scope.state = RankedVote_servedData;
+    $scope.log = log;
+    $scope.toggleUserChoices = toggleUserChoices;
+    $scope.canAddCandidate = function(){
+      return $scope.state.data.userSuggestion=='open'
+      || ($scope.state.data.userSuggestion=='once' && (function countMyOptions(){
+        var count = 0;
+        for(var i=0;i<$scope.state.data.candidates.length;++i) { if($scope.state.data.candidates[i][2]==creatorID) count++; }
+        for(var i=0;i<$scope.state.data.choices.length;++i) { if($scope.state.data.choices[i][2]==creatorID) count++; }
+        for(var i=0;i<$scope.state.data.addedCandidate.length;++i) { if($scope.state.data.addedCandidate[i][2]==creatorID) count++; }
+        return count;
+      })() < 1);
+    };
+    $scope.addCandidate = function() {
+      $scope.state.data.choices.splice(0,0,[undefined,"",creatorID]);
+    };
+    $scope.editOption = function(listname, index) {
+      component = $scope.state.data[listname][index];
+      var readyForUse = component[0] !== undefined;
+      if(!readyForUse) {
+        if(!component[1] || !component[1].length) {
+          $scope.state.data[listname].splice(index,1);
+          for(var i=$scope.state.data.addedCandidate.length-1;i>=0;--i) {
+            if($scope.state.data.addedCandidate[i][2]==creatorID) { $scope.state.data.addedCandidate.splice(i,1); }
+          }
+        } else {
+          var idText = candidateNameFrom(component[1]);
+          console.log("NEW ID: \'"+idText+"\'");
+          component[0] = idText;
+        }
+      } else {
+        component[0] = undefined;
+      }
+    };
     if($scope.state.data.votability!='closed') {
       $scope.opts = {
         group: 'choices',
@@ -93,10 +207,12 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
         data.choices = rankedOrder;
       }
     }
+    // make user created choices available
+    toggleUserChoices();
     // TODO randomize order of candidates, unless choice order is meant to stay unrandomized (make sure that the ranked choices are not randomized!)
     $scope.submit = function() {
       var minchoices = $scope.state.data.minchoices;
-      if(minchoices != null && minchoices != undefined){
+      if(minchoices != null && minchoices != undefined) {
         var countChoices = $scope.state.data.choices.length;
         if(countChoices < minchoices){
           var errorMsg = "";
@@ -106,11 +222,19 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
             errorMsg = "You must choose at least "+minchoices+" candidate"+
             ((minchoices>1)?"s":"")+"!";
           }
-          errorUI(ByID("userChoices"),errorMsg,5000);
+          responsePulse(errorMsg, '#f00');
+          //errorUI(ByID("userChoices"),errorMsg,5000);
           return;
         }
       }
       var list = simplifiedListOfListsToList($scope.state.data.choices); // user ranked-vote
+      // validate list
+      for(var i=0;i<list.length;++i) {
+        if(!list[i] || !list[i].length) {
+          responsePulse('bad entry at index '+i+': '+JSON.stringify(list), '#f00');
+          return;
+        }
+      }
       var submissionState = {
         name: $scope.state.title,
         did: $scope.state.id,
@@ -126,10 +250,27 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
       if($scope.state.voteID) {
         submissionState.id = $scope.state.voteID;
       }
+      // find the candidates or choices are a user generated option
+      var found = [];
+      function checkListForOptionFrom(list, voterid, out_found) {
+        for(var i=0;i<list.length;++i) { if(list[i][2] == voterid) { out_found.push(list[i]); } }
+      }
+      checkListForOptionFrom($scope.state.data.candidates, creatorID, found);
+      checkListForOptionFrom($scope.state.data.choices, creatorID, found);
+      // isolate that data
+      if(found.length > 0 || ($scope.state.data.addedCandidate && $scope.state.data.addedCandidate.length == 0)) {
+        if(!submissionState.data) {submissionState.data={};}
+        // put it into the submission state as an addedCandidate
+        for(var i=found.length-1;i>=0;--i) {
+          var suggestion = found[i];
+          var foundIndex = -1;
+          for(var j=0;j<i;++j) { if(found[j][0] == found[i][0]) { foundIndex = j; break; } }
+          if(foundIndex >= 0) { console.log("removing duplicate "+found[foundIndex]); found.splice(foundIndex,1); }
+        }
+        submissionState.data.addedCandidate = found;
+      }
       if(!creatorID || creatorID == "0") {
-        var submitButton = ByID("sbmt");
-        submitButton.disabled = true;
-        submitButton.innerHTML = "You must login to vote!";
+        responsePulse('You must login to vote!', '#f00');
       }
       // TODO validate voter id
       // TODO validate debate id matches the last part of the URL
@@ -141,21 +282,17 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
         // clear the data from the cookie once the data is properly sent.
         if (xhr.readyState == 4 && xhr.status == 200) {
           // hide vote button
-          var submitButton = ByID("sbmt");
-          submitButton.disabled = true;
-          submitButton.innerHTML = "Thank you for your vote!";
           // create link to results
-          var responseElement = ByID("response");
           try{
             var response = JSON.parse(xhr.responseText);
-            responseElement.innerHTML += '<br>Vote receipt number: '+response.id;
+            responsePulse('Vote receipt number: '+response.id, '#0f0');
           }catch(e){
             var redirectHead = "redirect:";
             if(xhr.responseText.startsWith(redirectHead)) {
               window.location = xhr.responseText.substring(redirectHead.length);
               return;
             }
-            responseElement.innerHTML += '<br>'+xhr.responseText;
+            responsePulse(xhr.responseText, '#f00');
           }
           document.cookie = "rank=";
         }

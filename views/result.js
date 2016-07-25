@@ -13,7 +13,7 @@ var show = function(elementIndex) {
     SCOPE.generated[elementIndex] = ByID("e"+elementIndex);
     if(SCOPE.generated[elementIndex]){
       // append the image generated from $scope.result[index] to it
-      IRV_deserializeVisualizationBlocData(SCOPE.state.result[elementIndex].showme, 0, 0, 500, -1, SCOPE.generated[elementIndex]);
+      IRV_deserializeVisualizationBlocData(SCOPE.state.result[elementIndex].showme, 0, 0, 450, -1, SCOPE.generated[elementIndex]);
     }
   }
 }

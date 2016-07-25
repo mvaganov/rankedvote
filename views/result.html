@@ -2,13 +2,14 @@
 <h1>{{state.title}}</h1>
 <p ng-bind-html="state.prompt"></p>
 <table border=0 class="maxwidth">
-    <tr ng-repeat="item in state.result track by $index"><td>
+	<tr ng-repeat="item in state.result track by $index"><td>
 		<table ng-click="show( $index );" class="maxwidth rounded"><tr><td>
-      		<h2>{{$index+1}}</h2>{{state.info[$index][0]}} ({{item.v}}/{{item.showme.numVotes}})
-	      	</td><td width=100%>
-	      	<div id="e{{$index}}"></div>
-	      	<p ng-bind-html="state.info[$index][1]"></p>
-	    </td></tr></table>
-    </td></tr>
+			<h2>{{$index+1}}</h2>
+		</td><td width=100%>
+			<div id="e{{$index}}"></div>
+			<p ng-bind-html="state.info[$index][1]"></p>
+			<span class="unslct">{{state.info[$index][0]}} ({{item.v}}/{{item.showme.numVotes}})</span>
+		</td></tr></table>
+	</td></tr>
 </table><br><br>
 <a id="reslink" ng-href="../vote/{{state.id}}">your vote</a><br>

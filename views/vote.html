@@ -5,29 +5,42 @@
 <h1>{{state.title}}</h1><p ng-bind-html="state.data.prompt"></p>
 <table border=0 class="maxwidth"><tr><td>
   <span class="unslct">unselected</span>
-  <div ng-sortable="opts" class="choices unslct" id="THEMAINLIST">
-    <div ng-repeat="choice in state.data.candidates"><div class="rounded choice"><table><tr>
-      <td><img src="{{choice[2]}}" alt="{{choice[0]}}" class="i"></td>
-      <td><p ng-bind-html="choice[1]"></p></td>
-    </tr></table></div></div>
+</td><td>
+  <span class="slcted">best choices, in order</span>
+</td></tr>
+<tr><td style="vertical-align:text-top" ng-sortable="opts" class="choices unslct" id="THEMAINLIST">
+  <div ng-repeat="choice in state.data.candidates" class="rounded choice">
+    <table width=100%><tr>
+      <td id="td_candidates{{$index}}">
+        <p ng-if="choice[0]!==undefined" ng-bind-html="choice[1]"></p>
+        <input name="{{$index}}" ng-if="choice[0]===undefined" value="{{choice[1]}}" placeholder="leave empty to remove" onkeyup="SCOPE.state.data.candidates[parseInt(this.name)][1]=this.value;"></input>
+      </td>
+      <td ng-if="choice[2]==creatorID" style="text-align:right">
+        <input type="button" ng-click="editOption('candidates',$index, this)" ng-value="(choice[0]!==undefined)?'edit':'done'"></input>
+      </td>
+    </tr></table>
   </div>
-</td><td style="vertical-align:text-top">
-    <span class="slcted">best choices, in order</span>
-    <div class="rounded chosen slcted" ng-sortable="opts" onclick="dragTutorial()" id="userChoices">
-      <div ng-repeat="choice in state.data.choices"><div class="rounded choice">
-        <table><tr>
-          <td>{{$index+1}}</td>
-          <td><img src="{{choice[2]}}" alt="{{choice[0]}}" class="i"></td>
-          <td><p ng-bind-html="choice[1]"></p></td></tr><tr>
-          </tr>
-        </table>
-      </div></div>
-    </div>
-</td></tr></table>
-<div ng-if="state.data.votability!='closed'">
-<button ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt"><!--TODO disable if the debate is closed.-->
-  <h1>vote</h1></button>
-</div>
+</td><td style="vertical-align:text-top" class="rounded chosen slcted" ng-sortable="opts" onclick="dragTutorial()" id="userChoices">
+  <div ng-repeat="choice in state.data.choices" class="rounded choice">
+    <table width=100%><tr>
+      <td width=1px>{{$index+1}}</td>
+      <td id="td_choices{{$index}}">
+        <p ng-if="choice[0]!==undefined" ng-bind-html="choice[1]"></p>
+        <input name="{{$index}}" ng-if="choice[0]===undefined" value="{{choice[1]}}" placeholder="leave empty to remove" onkeyup="SCOPE.state.data.choices[parseInt(this.name)][1]=this.value;"></input>
+      </td>
+      <td ng-if="choice[2]==creatorID" style="text-align:right">
+        <input type="button" ng-click="editOption('choices',$index, this)" ng-value="(choice[0]!==undefined)?'edit':'done'"></input>
+      </td>
+    </tr></table>
+  </div>
+</td></tr>
+<tr><td>
+<input type='button' style="width:100%" ng-if="state.data.addedCandidate" ng-click="toggleUserChoices()" ng-value="(userChoicesOn?'remove user suggestions':'include user suggestions')"></input>
+</td><td>
+<input type='button' style="width:100%" ng-if="canAddCandidate()" ng-click="addCandidate()" value='suggest another choice'></input>
+</td></tr>
+</table>
+<input type='button' ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt" ng-if="state.data.votability!='closed'" style="font-size:2em" value='vote'></input>
 <br><div id="response"></div><br><br>
 <a id="reslink" ng-href="../result/{{state.id}}">see results</a><br>
 <img style="position:fixed;display:none;" src="../touch_128.png" id="hand" />

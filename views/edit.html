@@ -21,21 +21,35 @@
 <input id="SCOPE.state.title" placeholder="title (required)" class="maxwidth" onkeyup="SCOPE.state.title=this.value;" style="font-size:30px;"></input><br>
 <textarea rows=4 id="SCOPE.state.data.prompt" placeholder="prompt (optional)" class="maxwidth" onkeyup="SCOPE.state.data.prompt=this.value;">If your top choice could not possibly win, your vote automatically transfers to the next choice.</textarea><br>
 <div ng-sortable="opts" id="THEMAINLIST" class="choices">
-  <div ng-repeat="choice in state.data.candidates"><div class="rounded vbuffered"><table><tr>
+  <div ng-repeat="choice in state.data.candidates" class="rounded vbuffered"><table><tr>
     <td rowspan=2><input placeholder="identifier" name="{{$index}}" style="max-width:80px;" id="cid{{$index}}" class="ciddisp"
       onkeyup="SCOPE.state.data.candidates[parseInt(this.name)][0]=this.value;" value="{{choice[0]}}"></input></td>
     <td rowspan=2>&nbsp;&nbsp;&nbsp;&nbsp;<br>
     </td>
     <td class="maxwidth"><input placeholder="choice text" name="{{$index}}" class="maxwidth" style="min-width:80px" onkeyup="SCOPE.state.data.candidates[parseInt(this.name)][1]=this.value;" value="{{choice[1]}}"></input></td>
     <!-- TODO make a settings option: delete, chosen by default, unchosen by default, preferred color-->
-    <td rowspan=2><button style="color:red;" name="{{$index}}" onclick="SCOPE.state.data.candidates.splice(parseInt(this.name),1);SCOPE.$digest();">x</button></td>
-  </tr><tr><td>
-    <!-- TODO color -->
-  </tr></table></div></div>
+    <td rowspan=2><input type='button' style="color:red;" name="{{$index}}" onclick="SCOPE.state.data.candidates.splice(parseInt(this.name),1);SCOPE.$digest();" value='x'></input></td>
+  </tr></table></div>
 </div>
-<button class="rounded add maxwidth" ng-click="state.data.candidates.push(['','','']);"><h2>+ add choice&nbsp;&nbsp;</h2></button>
+
+<input type='button' class="rounded add maxwidth" ng-click="state.data.candidates.push(['','','']);" value='+ add choice  ' style="font-size:2em"></input>
 <br><br>
-  
+
+<div ng-if="state.data.addedCandidate">
+  <h1>User Added Suggestions</h1>
+  <div ng-sortable="opts" id="additions" class="choices">
+    <div ng-repeat="choice in state.data.addedCandidate" class="rounded vbuffered"><table><tr>
+      <td rowspan=2><input placeholder="identifier" name="{{$index}}" style="max-width:80px;" id="cid{{$index}}" class="ciddisp"
+        onkeyup="SCOPE.state.data.addedCandidate[parseInt(this.name)][0]=this.value;" value="{{choice[0]}}"></input></td>
+      <td rowspan=2>&nbsp;&nbsp;&nbsp;&nbsp;<br>
+      </td>
+      <td class="maxwidth"><input placeholder="choice text" name="{{$index}}" class="maxwidth" style="min-width:80px" onkeyup="SCOPE.state.data.addedCandidate[parseInt(this.name)][1]=this.value;" value="{{choice[1]}}"></input></td>
+      <!-- TODO make a settings option: delete, chosen by default, unchosen by default, preferred color-->
+      <td rowspan=2><input type='button' style="color:red;" name="{{$index}}" onclick="SCOPE.state.data.addedCandidate.splice(parseInt(this.name),1);SCOPE.$digest();" value='x'></input></td>
+    </tr></table></div>
+  </div>
+</div>
+
 <select id="optiondisp" onchange="setStyle('display',this.value,['debateoptions']);SCOPE.$digest();">
   <option value="none">advanced options hidden</option>
   <option value="">advanced options shown</option>
@@ -55,13 +69,13 @@
 -->
   </select><br>
 
+<select id="SCOPE.state.data.userSuggestion" onchange="SCOPE.state.data.userSuggestion=this.value;SCOPE.$digest();">
+  <option value=""    >vote only - voters cant offer additional suggestions</option>
+  <option value="once">one suggestion - each voter can offer just one suggestion</option>
 <!--
-  <select id="SCOPE.state.data.userSuggestion" onchange="SCOPE.state.data.userSuggestion=this.value;SCOPE.$digest();">
-    <option value=""    >vote only - voters cant offer additional suggestions</option>
-    <option value="open">open - voters can offer any number of suggestions</option>
-    <option value="one" >one - voters can offer just one suggestion</option>
-  </select><br>
+  <option value="open">open discussion - voters can offer any number of suggestions</option>
 -->
+</select><br>
 
 <!--
   <select id="jsoninsertoption" onchange="setStyle('display',this.value,['jsoninsert','jsoninsertbutton']);SCOPE.refresh();SCOPE.$digest();">
@@ -100,9 +114,7 @@ preview below
 <hr>
 end preview
 <hr>
-<button ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt">
-  <h1>submit</h1>
-</button>
+<input type='button' ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt" style="font-size:2em" value="submit"></input>
 <br>
 <br><div id="response"></div>
 <br>
