@@ -112,7 +112,8 @@ function responsePulse(text, color) {
 function log(str) {console.log(str);}
 
 function candidateNameFrom(htmlText) {
-  return htmlText.substring(0,Math.min(32,htmlText.length));
+  return generateIdentifier(htmlText);
+  //return htmlText.substring(0,Math.min(32,htmlText.length));
 }
 
 angular.module('vote', ['ng-sortable', 'ngSanitize'])

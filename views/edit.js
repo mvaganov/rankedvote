@@ -37,58 +37,6 @@ function responsePulse(text, color) {
   responseElement.innerHTML = pre+text+post;
   elementPulse(responseElement, 3, 1000);
 }
-///////////////////////////////////////////////////////////////////////////////
-// must have stringbunous.js imported 
-function truncateText(text, MAX_ID_LENGTH) {
-  var chopIndex = text.indexOf('\n');
-  if(chopIndex >= 0) { text = text.substring(0, chopIndex); }
-  if(text.length > MAX_ID_LENGTH) {
-    chopIndex = MAX_ID_LENGTH;
-    for(var j=MAX_ID_LENGTH;j>=0;--j) {
-      if(' \t\r'.indexOf(text[j]) >= 0) {
-        chopIndex = j;
-        break;
-      }
-    }
-    text = text.substring(0, chopIndex);
-  }
-  return text;
-}
-
-function getBestNameFrom(listOfHtmlElements) {
-  var bestNamePropertyOrder = ["alt", "title", "text", "name", "value", "id", "src", "href", "class", "style", "type"];
-  var name = null;
-  // console.log("~~~"+JSON.stringify(listOfHtmlElements));
-  for(var i=0;i<listOfHtmlElements.length;++i) {
-    for(var j=0;j<bestNamePropertyOrder.length;++j){
-      var prop = bestNamePropertyOrder[j];
-      if(listOfHtmlElements[i][ prop ]) {
-        name = listOfHtmlElements[i][ prop ];
-        name.trimTokens([" ","\n","\r","\t"]);
-      }
-      if(name) { break; }
-    }
-    if(name) { break; }
-  }
-  return name;
-}
-
-function generateIdentifier(inputtext) {
-  var choiceHtmlTags = [];
-  var text = separateTextAndHtml(inputtext, choiceHtmlTags);
-  if(text) {
-    var MAX_ID_LENGTH = 32;
-    text = truncateText(text, MAX_ID_LENGTH);
-  }
-  if(!text || text.length == 0) {
-    if(choiceHtmlTags && choiceHtmlTags.length) {
-      // console.log("TODO: element "+i+" should be named with "+JSON.stringify(htmlTagForChoices[i]));
-      text = getBestNameFrom(choiceHtmlTags);
-    }
-  }
-  return text;
-}
-///////////////////////////////////////////////////////////////////////////////
 
 function generateIdentifiers(state) {
   function generateIDForGroup(list) {
@@ -96,22 +44,8 @@ function generateIdentifiers(state) {
     for(var i=0;i<list.length;++i) {
         list[i][0] = '';
     }
-    // var MAX_ID_LENGTH = 32;
     var htmlTagForChoices = [];
     for(var i=0;i<list.length;++i) {
-      // var choiceHtmlTags = [];
-      // var text = separateTextAndHtml(list[i][1], choiceHtmlTags);
-      // if(text) {
-      //   text = truncateText(text, MAX_ID_LENGTH);
-      // }
-      // if(!text || text.length == 0) {
-      //   if(htmlTagForChoices[i] && htmlTagForChoices[i].length) {
-      //     // console.log("TODO: element "+i+" should be named with "+JSON.stringify(htmlTagForChoices[i]));
-      //     text = getBestNameFrom(htmlTagForChoices[i]);
-      //   }
-      // }
-      // list[i][0] = text;
-      // htmlTagForChoices.push(choiceHtmlTags);
       list[i][0] = generateIdentifier(list[i][1]);
     }
   }
