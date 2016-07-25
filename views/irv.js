@@ -360,7 +360,7 @@ var IRV_calc = function(allBallots, outputContainer, maxWinnersCalculated, cb) {
   if(!maxWinnersCalculated) { maxWinnersCalculated = -1; }
   if(!cb) {
     cb = function(results){
-      console.log(JSON.stringify(results));
+      // console.log(JSON.stringify(results));
       IRV_standardOutput(results, outputContainer);
     }
   }

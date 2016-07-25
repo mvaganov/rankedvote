@@ -101,16 +101,14 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
       }
       if(!irv_validateCandidates([$scope.state.data.candidates, $scope.state.data.choices],
         function(err){ if(err){responsePulse(err,"#f00");} })) {
-        // console.log("failed validation");
         return false;
       }
 
       var submissionState = JSON.parse(JSON.stringify($scope.state));//clone($scope.state);
       if(submissionState.owner) {
         if(submissionState.owner != creatorID) {
-          console.log("\n\n\nowner does not match! \n"+submissionState.owner+" !=\n"+creatorID);
+          responsePulse("\n\n\nowner does not match! \n"+submissionState.owner+" !=\n"+creatorID,"#f00");
           return false;
-          // console.log("forcing to correct user.");
           // submissionState.owner = creatorID; // partial user authentication
         }
       } else {
@@ -132,7 +130,6 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
             responseElement.innerHTML = '<br>Debate number: '+response.id;
             if(!$scope.state.id) {
               var nextLoc = location.protocol+"//"+window.location.host+"/edit/"+response.id;
-              console.log("next location: "+nextLoc);
               $scope.state.id = response.id;
               window.location = nextLoc;
             } else {
@@ -147,7 +144,7 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
       xhr.open('post', '');
       var submisison = JSON.stringify(submissionState);
       document.cookie = "debate=" + submisison;
-      console.log("sending "+submisison);
+      // console.log("sending "+submisison);
       xhr.send();
     };
   }]);

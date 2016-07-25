@@ -865,7 +865,6 @@ function calculateResults(req, res, scope, whenFinished) {
       if(scope.debate.data.addedCandidate) {
         candidateSource = candidateSource.concat(scope.debate.data.addedCandidate);
       }
-      console.log("SOURCE:::::: "+candidateSource);
       for(var r=0;r<scope.state.result.length;++r) {
         var cand = scope.state.result[r].C;
         if(typeof cand === 'string') {
@@ -955,7 +954,6 @@ function ensureTimeBetween(stringCode, actionName, timeMs, callback) {
     if(isOK) {
       DS_setCached(stringCode, Date.now()+timeMs, function(){callback(null);}, timeMs);
     } else {
-      console.log("vote NOT OK");
       callback("Please wait "+tillActionOK+" seconds before trying to "+actionName);
     }
   });
@@ -1053,12 +1051,10 @@ app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) 
       const MIN_MS_BETWEEN_VOTES = 60 * 1000;
       ensureTimeBetween("vote"+scope.voter.vid, "vote", MIN_MS_BETWEEN_VOTES, callback);
     }, function getEntry(callback) { 
-      console.log("GETTING DEBATE ENTRY "+dat.did);
       if(dat.dentry) {
         var debate_entry_id = dat.did;
         dat.dentry = null; delete dat.dentry; // remove the debate entry from the vote. it's non-standard!
         GetDebateEntry(debate_entry_id, function(err, entity) {
-          console.log("~~~~"+err);
           scope.dentry=entity; callback(err);
         });
       } else { 

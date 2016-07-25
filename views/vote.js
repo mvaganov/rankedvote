@@ -15,12 +15,7 @@ var toggleUserChoices = function() {
     function removeAddedCandidateFrom(clist) {
       for(var i=clist.length-1;i>=0;--i) {
         if(clist[i][2] && clist[i][2] != '') { // if it is user created
-          // console.log("removing "+clist[i][1]);
-          // for(var j=0;j<list.length;++j) {
-            // if(list[j] == clist[i]) { // and it is in the addedCandidate list
-              clist.splice(i,1); // remove it from this list
-            // }
-          // }
+          clist.splice(i,1); // remove it from this list
         }
       }
     }
@@ -109,7 +104,9 @@ function responsePulse(text, color) {
   elementPulse(responseElement, 3, 1000);
 }
 
-function log(str) {console.log(str);}
+function log(str) {
+  // console.log(str);
+}
 
 function candidateNameFrom(htmlText) {
   return generateIdentifier(htmlText);
@@ -147,7 +144,7 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
           }
         } else {
           var idText = candidateNameFrom(component[1]);
-          console.log("NEW ID: \'"+idText+"\'");
+          log("NEW ID: \'"+idText+"\'");
           component[0] = idText;
         }
       } else {
@@ -266,7 +263,7 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
           var suggestion = found[i];
           var foundIndex = -1;
           for(var j=0;j<i;++j) { if(found[j][0] == found[i][0]) { foundIndex = j; break; } }
-          if(foundIndex >= 0) { console.log("removing duplicate "+found[foundIndex]); found.splice(foundIndex,1); }
+          if(foundIndex >= 0) { log("removing duplicate "+found[foundIndex]); found.splice(foundIndex,1); }
         }
         submissionState.data.addedCandidate = found;
       }
