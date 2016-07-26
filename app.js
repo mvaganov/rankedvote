@@ -983,7 +983,7 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
       });
     }, function ensureOneMinuteBetweenVotes(callback) {
       const MIN_MS_BETWEEN_DEBATE_EDITS = 60 * 1000;
-      console.log("edit voter "+scope.voter.name+" "+scope.voter.id+" "+scope.voter.email);
+      // console.log("edit voter "+scope.voter.name+" "+scope.voter.id+" "+scope.voter.email);
       ensureTimeBetween("edit"+scope.voter.id, "edit your debate", MIN_MS_BETWEEN_DEBATE_EDITS, callback);
     }, function getDebate(callback) { 
       if(did) { // updating existing debate
@@ -1050,7 +1050,7 @@ app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) 
       });
     }, function ensureOneMinuteBetweenVotes(callback) {
       const MIN_MS_BETWEEN_VOTES = 60 * 1000;
-      console.log("vote voter "+scope.voter.name+" "+scope.voter.id+" "+scope.voter.email);
+      // console.log("vote voter "+scope.voter.name+" "+scope.voter.id+" "+scope.voter.email);
       ensureTimeBetween("vote"+scope.voter.id, "vote", MIN_MS_BETWEEN_VOTES, callback);
     }, function getEntry(callback) { 
       if(dat.dentry) {
@@ -1085,10 +1085,12 @@ app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) 
               return cb("user suggestions not allowed.");
             }
             // remove each user suggestion from the debate. will be re-added from dat's addedCandidate list)
-            for(var i=scope.debate.data.addedCandidate.length-1;i>=0;--i) {
-              if(scope.debate.data.addedCandidate[i][2] == scope.voter.id) {
-                scope.debate.data.addedCandidate.splice(i,1);
-                changeMade = true;
+            if(scope.debate.data.addedCandidate) {
+              for(var i=scope.debate.data.addedCandidate.length-1;i>=0;--i) {
+                if(scope.debate.data.addedCandidate[i][2] == scope.voter.id) {
+                  scope.debate.data.addedCandidate.splice(i,1);
+                  changeMade = true;
+                }
               }
             }
             // make sure there are no duplicates
