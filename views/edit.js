@@ -88,6 +88,11 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
         specialCodeInput.value = JSON.stringify($scope.state, null, 2);
       }
     };
+    $scope.setVState = function(vis, vot){
+      SCOPE.state.data.visibility = vis;//'deleted';
+      SCOPE.state.data.votability = vot;//'closed';
+      writeStateIntoFields(SCOPE, "SCOPE");
+    };
     $scope.refresh();
     $scope.submit = function() {
       var responseElement = ByID("response");

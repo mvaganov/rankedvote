@@ -387,7 +387,7 @@ var writeWebpageHeader = function(req, res, title, includesPath, includes, codeT
     var hv = cachedHeader.meta.variables;
     var fillVariables = {};
     fillVariables[hv.title] = title || cachedHeader.meta.title;
-    if(codeToInsert) { codeToInsert = "<script>"+codeToInsert+"</script>"; }
+    if(codeToInsert) { codeToInsert = "<script>"+codeToInsert+"</script>"; } else { codeToInsert=""; }
     fillVariables[hv.code] = codeToInsert;
     fillVariables[hv.includes] = includeHtml;
     fillVariables[hv.passport] = passportHtml;
@@ -396,7 +396,7 @@ var writeWebpageHeader = function(req, res, title, includesPath, includes, codeT
   if(!cachedHeader) {
     cachedHeader = new mvaganov.CachedMadlibs();
     //var values = []; for(var k in headerVariables) { values.push(headerVariables[k]); }
-    cachedHeader.initFromFile("views/header.html", null, {keepWhitespace:true}, _writeWebpageHeader);
+    cachedHeader.initFromFile("views/header.html", null, {keepWhitespace:false}, _writeWebpageHeader);
   } else {
     _writeWebpageHeader(null);
   }
@@ -428,7 +428,7 @@ var writeWebpageFooter = function (req, res, cb) {
     cachedFooter = new mvaganov.CachedMadlibs();
     var values = [];
     for(var k in footerVariables) { values.push(footerVariables[k]); }
-    cachedFooter.initFromFile("views/footer.html", values, {keepWhitespace:true}, _writeWebpageFooter);
+    cachedFooter.initFromFile("views/footer.html", values, {keepWhitespace:false}, _writeWebpageFooter);
   } else {
     _writeWebpageFooter(null);
   }

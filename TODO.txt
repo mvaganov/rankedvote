@@ -13,10 +13,10 @@ major features
 	X option to add choices to some debates
 	- vote flag to receive e-mails if choices are changed
 	- drag-page-up to load more (will require removing footer?)
-	- disable dragging user suggestions till 'done' is pressed
+	X disable dragging user suggestions till 'done' is pressed
 	- when dragging options from a long list, have the top scrolled down also, to be visible. 
 	- when logging in after hitting vote, submit the vote when the login completes.
-	- make a delete button
+	X make a delete button
 	- public debates page should have 'manage' link for owned debates. 
 	X manage link in the 'vote.html', at the bottom of the page.
 	- poll owner can add as many suggestions as they want. database gives that voter id carte blanche, adds options direct to the candidates, and removes the author tag.
@@ -38,6 +38,7 @@ client cleanup
 	X make simple html to act as common header block
 	X shared .css
 	X response messages from post calls
+	X trim lines being served (as part of init process in CachedMadlibs)
 	- properly link to "https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular.min.js",
 	- properly link to "https://ajax.googleapis.com/ajax/libs/angularjs/1.5.7/angular-sanitize.min.js",
 
@@ -89,3 +90,5 @@ default  20160725t161829              0.00           2016-07-25T16:19:38-07:00  
 gcloud preview app versions delete 20160711t002825 20160711t004314 20160711t013323 20160711t105650 20160711t153032 20160714t142430 20160720t002040 20160721t230553 20160725t160609 20160725t161829
 
 gcloud preview app deploy --stop-previous-version
+
+

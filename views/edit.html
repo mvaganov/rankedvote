@@ -3,7 +3,8 @@
   .i {height:{{state.data.imgh}};width:{{state.data.imgw}};display:{{state.data.imgdisp}};}
   .imgdisp {display:{{state.data.imgdisp}};}
   .ciddisp {display:{{choiceID}};}
-</style>
+</style><br>
+<table class="maxwidth"><tr><td>
 <select id="SCOPE.state.data.visibility" onchange="SCOPE.state.data.visibility=this.value;">
   <option value="private">private - not in a directory, but the link can be shared</option>
   <option value="public" >public - a link can be found in the public debate list</option>
@@ -17,7 +18,12 @@
     <option value="exclusive">debate is exclusive - only specific users can see it</option>
     <option value="admin">votes are admin approved - an administrator allows your vote to count</option>
 -->
-</select><br>
+</select></td>
+<td style="text-align:right">
+  <a href="" onclick="SCOPE.setVState('public','anyone')">make public</a>&nbsp;&nbsp;&nbsp;
+  <a href="" onclick="SCOPE.setVState('deleted','closed')">delete</a>
+</td>
+</tr></table>
 <input id="SCOPE.state.title" placeholder="title (required)" class="maxwidth" onkeyup="SCOPE.state.title=this.value;" style="font-size:30px;"></input><br>
 <textarea rows=4 id="SCOPE.state.data.prompt" placeholder="prompt (optional)" class="maxwidth" onkeyup="SCOPE.state.data.prompt=this.value;">If your top choice could not possibly win, your vote automatically transfers to the next choice.</textarea><br>
 <div ng-sortable="opts" id="THEMAINLIST" class="choices">
@@ -86,13 +92,14 @@
 -->
 </div>
 <br>
+<!--
 <hr>
 preview below
 <hr>
 <h1>{{state.title}}</h1><p ng-bind-html="state.data.prompt"></p>
 <table border=0 class="maxwidth"><tr><td>
   <span class="unslct">unselected</span>
-  <div class="choices unslct" id="THEMAINLIST"><!--ng-sortable="opts"-->
+  <div class="choices unslct" id="THEMAINLIST">
     <div ng-repeat="choice in state.data.candidates"><div class="rounded choice"><table><tr>
       <td><p ng-bind-html="choice[1]"></p></td>
     </tr></table></div></div>
@@ -100,7 +107,7 @@ preview below
 </td><td>
   <div class="maxwidth">
     <span class="slcted">best choices, in order</span>
-    <div class="rounded chosen slcted" id="userChoices"><!--ng-sortable="opts"-->
+    <div class="rounded chosen slcted" id="userChoices">
       <div ng-repeat="choice in state.data.choices"><div class="rounded choice">
         <table><tr>
           <td>{{$index+1}}</td>
@@ -114,6 +121,7 @@ preview below
 <hr>
 end preview
 <hr>
+-->
 <input type='button' ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt" style="font-size:2em" value="submit"></input>
 <br>
 <br><div id="response"></div>
@@ -122,6 +130,6 @@ end preview
   <a id="reslink" ng-href="../result/{{state.id}}">see results</a>
 </td><td style="text-align:center" width=33%>
   <a id="adminvotelink" ng-href="../vote/{{state.id}}">vote</a>
-</td><td style="text-align:center" width=33%>
+</td><td style="text-align:right" width=33%>
   <a id="adminvotelink" ng-href="../votex/{{state.id}}">admin vote</a>
 </td></tr></table>

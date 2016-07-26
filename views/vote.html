@@ -3,6 +3,9 @@
   .i {height:{{state.data.imgh}};width:{{state.data.imgw}};display:{{state.data.imgdisp}};}
 </style>
 <h1>{{state.title}}</h1><p ng-bind-html="state.data.prompt"></p>
+<div style="text-align:right" class="maxwidth" ng-if="creatorID==state.owner">
+  <a ng-href="../edit/{{state.id}}">edit</a><br>
+</div>
 <table border=0 class="maxwidth"><tr><td>
   <span class="unslct">unselected</span>
 </td><td>
@@ -41,6 +44,9 @@
 </td></tr>
 </table>
 <input type='button' ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt" ng-if="state.data.votability!='closed'" style="font-size:2em" value='vote'></input>
+<!--
+<br><input type="checkbox" name="emailnotify" value="notify" text="sadf"> receive e-mail notification if a new suggestion becomes significant</input><br>
+-->
 <br><div id="response"></div><br><br>
 <table class="maxwidth" ng-if="state.id"><tr><td width=50%>
   <a id="reslink" ng-href="../result/{{state.id}}">see results</a><br>

@@ -146,11 +146,13 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
           }
         } else {
           var idText = candidateNameFrom(component[1]);
-          log("NEW ID: \'"+idText+"\'");
+          // log("NEW ID: \'"+idText+"\'");
           component[0] = idText;
         }
+        SCOPE.opts.draggable = ".choice"; // allow all items to be dragged
       } else {
         component[0] = undefined;
+        SCOPE.opts.draggable = ".stopDrag"; // prevent items from being dragged
       }
     };
     if($scope.state.data.votability!='closed') {
