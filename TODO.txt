@@ -17,7 +17,8 @@ major features
 	- when dragging options from a long list, have the top scrolled down also, to be visible. 
 	- when logging in after hitting vote, submit the vote when the login completes.
 	- make a delete button
-	- public debates page should have 'manage' link for owned debates. at least in the 'vote.html', at the bottom of the page.
+	- public debates page should have 'manage' link for owned debates. 
+	X manage link in the 'vote.html', at the bottom of the page.
 	- poll owner can add as many suggestions as they want. database gives that voter id carte blanche, adds options direct to the candidates, and removes the author tag.
 
 debate admin:

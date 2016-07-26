@@ -173,9 +173,11 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
     // cookie cached ranking (local to the device) trumps server-stored ranking (if any)
     var cookieTable = parseCookies(document.cookie);
     if(cookieTable.rank) {
-      $scope.state.rank = JSON.parse(cookieTable.rank);
-      // "rank" stores the entire vote. isolate the rank from the vote for the UI
-      $scope.state.rank = $scope.state.rank.data.rank;
+      if(!$scope.state.rank || !$scope.state.rank.length) {
+        $scope.state.rank = JSON.parse(cookieTable.rank);
+        // "rank" stores the entire vote. isolate the rank from the vote for the UI
+        $scope.state.rank = $scope.state.rank.data.rank;
+      }
     }
     // if this vote is in progress (cached as cookie or rank sent with data)
     if($scope.state.rank) {
