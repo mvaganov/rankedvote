@@ -18,6 +18,7 @@ major features
 	- when logging in after hitting vote, submit the vote when the login completes.
 	- make a delete button
 	- public debates page should have 'manage' link for owned debates. at least in the 'vote.html', at the bottom of the page.
+	- poll owner can add as many suggestions as they want. database gives that voter id carte blanche, adds options direct to the candidates, and removes the author tag.
 
 debate admin:
 	X do not allow a debate to be submitted if more than one choice has the same ID.
