@@ -983,7 +983,8 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
       });
     }, function ensureOneMinuteBetweenVotes(callback) {
       const MIN_MS_BETWEEN_DEBATE_EDITS = 60 * 1000;
-      ensureTimeBetween("edit"+scope.voter.vid, "edit your debate", MIN_MS_BETWEEN_DEBATE_EDITS, callback);
+      console.log("edit voter "+scope.voter.name+" "+scope.voter.id+" "+scope.voter.email);
+      ensureTimeBetween("edit"+scope.voter.id, "edit your debate", MIN_MS_BETWEEN_DEBATE_EDITS, callback);
     }, function getDebate(callback) { 
       if(did) { // updating existing debate
         DS_read(T_DEBATE, did, function(err, debate){scope.debate=debate;callback(null);});
@@ -1049,7 +1050,8 @@ app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) 
       });
     }, function ensureOneMinuteBetweenVotes(callback) {
       const MIN_MS_BETWEEN_VOTES = 60 * 1000;
-      ensureTimeBetween("vote"+scope.voter.vid, "vote", MIN_MS_BETWEEN_VOTES, callback);
+      console.log("vote voter "+scope.voter.name+" "+scope.voter.id+" "+scope.voter.email);
+      ensureTimeBetween("vote"+scope.voter.id, "vote", MIN_MS_BETWEEN_VOTES, callback);
     }, function getEntry(callback) { 
       if(dat.dentry) {
         var debate_entry_id = dat.did;

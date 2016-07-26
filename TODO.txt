@@ -7,10 +7,10 @@ major features
 	- user page informs how many debates and votes you have made
 	- edit user page, including changing name
 	X public debates
-	- list all debates in one long list, time-stamped. timestamp determined by when page is initially loaded
+	X list all debates in one long list, time-stamped. timestamp determined by when page is initially loaded
 	- multiple pages of debates
 	X sort debates by activity
-	- option to add choices to some debates
+	X option to add choices to some debates
 	- vote flag to receive e-mails if choices are changed
 	- drag-page-up to load more (will require removing footer?)
 
@@ -19,7 +19,7 @@ debate admin:
 	X arbitrary vote addition
 	- shadow tutorial stops showing up after a vote is made successfully
 	X debate deletion
-	> vote deletion
+	X vote "deletion"
 
 client cleanup
 	X graphical tutorial
@@ -42,7 +42,7 @@ server cleanup
 	X cache database queries in memory
 
 security
-	- minimum wait-time between debate creations and vote submissions per user, shown on client, enforced on server.
+	X minimum wait-time between debate creations and vote submissions per user, shown on client, enforced on server.
 
 google deploy:
 	X details: https://cloud.google.com/nodejs/getting-started/using-cloud-datastore#configure_settings
@@ -54,8 +54,31 @@ google deploy:
 FEATURE CREEP
 	X in debate creation, auto-create tokens by default, and have an option to show id field.
 	X have an HTML preview underneath the debate editor. use image tags instead of passing in an image URL
-	- make an "expanded data" option for the choice elements, which can be shown/hidden
+	- make an "expanded data" option for the choice elements (to minimize/maximize large options), which can be shown/hidden
 
 
 GCLOUD questions:
 	* why do I have 8 VM instances when my app won't even deploy once? am I paying for each of those instances? can I reduce the amount of instances that my app is using?
+
+
+ERROR: (gcloud.app.deploy) Error Response: [13] Timed out when starting VMs.  It's possible that the application code is unhealthy.  (0/2 ready, 1 still deploying, 1 failed). Error Calling GCE to create instance: rankedvote@us-central1-f@gae-default-20160725t160609-udif in GCE operation-1469488059814-5387dd9ce9071-80724268-7748d295. GCE error: Quota 'CPUS' exceeded.  Limit: 8.0 HTTP error: FORBIDDEN
+
+ERROR: (gcloud.app.deploy) Error Response: [13] CPU Quota Exceeded: in use: 7, requested: 2, limit: 8
+
+gcloud preview app versions list
+gcloud preview app versions delete [VERSIONS...]
+
+default  20160711t002825              0.00           2016-07-11T00:31:08-07:00  SERVING
+default  20160711t004314              0.00           2016-07-11T00:44:36-07:00  SERVING
+default  20160711t013323              0.00           2016-07-11T01:34:38-07:00  SERVING
+default  20160711t105650              0.00           2016-07-11T10:58:09-07:00  SERVING
+default  20160711t153032              0.00           2016-07-11T15:31:47-07:00  SERVING
+default  20160714t142430              0.00           2016-07-14T14:25:46-07:00  SERVING
+default  20160720t002040              0.00           2016-07-20T00:23:17-07:00  SERVING
+default  20160721t230553              1.00           2016-07-21T23:07:01-07:00  SERVING
+default  20160725t160609              0.00           2016-07-25T16:07:22-07:00  SERVING
+default  20160725t161829              0.00           2016-07-25T16:19:38-07:00  SERVING
+
+gcloud preview app versions delete 20160711t002825 20160711t004314 20160711t013323 20160711t105650 20160711t153032 20160714t142430 20160720t002040 20160721t230553 20160725t160609 20160725t161829
+
+gcloud preview app deploy --stop-previous-version

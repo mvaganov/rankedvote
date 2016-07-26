@@ -126,7 +126,9 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
         var count = 0;
         for(var i=0;i<$scope.state.data.candidates.length;++i) { if($scope.state.data.candidates[i][2]==creatorID) count++; }
         for(var i=0;i<$scope.state.data.choices.length;++i) { if($scope.state.data.choices[i][2]==creatorID) count++; }
-        for(var i=0;i<$scope.state.data.addedCandidate.length;++i) { if($scope.state.data.addedCandidate[i][2]==creatorID) count++; }
+        if($scope.state.data.addedCandidate) {
+          for(var i=0;i<$scope.state.data.addedCandidate.length;++i) { if($scope.state.data.addedCandidate[i][2]==creatorID) count++; }
+        }
         return count;
       })() < 1);
     };
