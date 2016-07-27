@@ -743,17 +743,18 @@ app.get(['/vote/:did','/votex/:did','/vote'], function(req, res, next) {
     }, function getDebate(callback) { 
       if(req.params.did) {
         DS_read(T_DEBATE, req.params.did, function(err, debate){
-          log("vot:"+debate.data.votability);
+          // log("vot:"+debate.data.votability);
           if(debate.data.visibility != 'deleted' && debate.data.visibility != 'hidden') { scope.debate=debate; }
           callback(null);
         });
       } else {scope.debate=null; callback(null);}
     }, function preprocessDebate(callback) {
+      // log("preprocessDebate\n"+JSON.stringify(scope.debate));
       if(!scope.debate) { return callback(null); }
       if(scope.debate.data.candidateOrder == 'result') {
         scope.state = saferParse(JSON.stringify(scope.debate));
-        // TODO order candidates by results from T_DEBATE_RESULT
       } else if(scope.debate.data.candidateOrder != 'fixed') {
+        // log("random order");
         scope.state = saferParse(JSON.stringify(scope.debate));
         function shuffle(array) {
           var m = array.length, t, i;
@@ -767,8 +768,10 @@ app.get(['/vote/:did','/votex/:did','/vote'], function(req, res, next) {
           return array;
         }
         shuffle(scope.state.data.candidates);
-        callback(null);
+      } else if (scope.debate.data.candidateOrder == 'fixed') {
+        // do nothing for fixed order. leave order the way it is.
       }
+      callback(null);        
     }, function getVote(callback) {
       if(scope.voter) {
         scope.isVotex = false;

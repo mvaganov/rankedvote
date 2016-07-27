@@ -11,17 +11,52 @@
   <option value="hidden" >hidden - can no longer be accessed at all</option>
   <option value="deleted" ng-if="state.id">deleted - hidden access, will be removed soon</option>
 </select><br>
-<select id="SCOPE.state.data.votability" onchange="SCOPE.state.data.votability=this.value;">
-  <option value="anyone" >anyone - anyone can vote or change their vote</option>
-  <option value="closed" >closed - no additional voting possible, results only</option>
+
+<select id="optiondisp" onchange="setStyle('display',this.value,['debateoptions']);SCOPE.$digest();">
+  <option value="none">advanced options hidden</option>
+  <option value="">advanced options shown</option>
+</select><br>
+
+<div style="display:none" id="debateoptions" class="rounded">
+  <select id="SCOPE.state.data.votability" onchange="SCOPE.state.data.votability=this.value;">
+    <option value="anyone" >anyone - anyone can vote or change their vote</option>
+    <option value="closed" >closed - no additional voting possible, results only</option>
+  <!--
+      <option value="exclusive">debate is exclusive - only specific users can see it</option>
+      <option value="admin">votes are admin approved - an administrator allows your vote to count</option>
+  -->
+  </select><br>
+
+  <select id="SCOPE.choiceID" onchange="SCOPE.choiceID=this.value;SCOPE.$digest();">
+    <option value="none">use automatic choice identifiers</option>
+    <option value="">customize choice identifiers</option>
+  </select><br>
+
+  <select id="SCOPE.state.data.candidateOrder" onchange="SCOPE.state.data.candidateOrder=this.value;SCOPE.$digest();">
+    <option value=""      >Randomize candidate order during vote</option>
+    <option value="fixed" >Use exactly this order during vote</option>
 <!--
-    <option value="exclusive">debate is exclusive - only specific users can see it</option>
-    <option value="admin">votes are admin approved - an administrator allows your vote to count</option>
+    <option value="result">Order candidates by current results</option>
 -->
-</select></td>
-<td style="text-align:right">
-  <a href="" onclick="SCOPE.setVState('public','anyone')">make public</a>&nbsp;&nbsp;&nbsp;
-  <a href="" onclick="SCOPE.setVState('deleted','closed')">delete</a>
+  </select><br>
+
+  <select id="SCOPE.state.data.userSuggestion" onchange="SCOPE.state.data.userSuggestion=this.value;SCOPE.$digest();">
+    <option value=""    >vote only - voters cant offer additional suggestions</option>
+    <option value="once">one suggestion - each voter can offer just one suggestion</option>
+<!--
+    <option value="open">open discussion - voters can offer any number of suggestions</option>
+-->
+  </select><br>
+
+<!--
+  <select id="jsoninsertoption" onchange="setStyle('display',this.value,['jsoninsert','jsoninsertbutton']);SCOPE.refresh();SCOPE.$digest();">
+    <option value="none">hide JSON editor</option>
+    <option value="">show JSON editor</option>
+  </select><input id="jsoninsertbutton" type='button' value="use the following JSON" onclick='insertJSON();' style="display:none"></input><br>
+  <textarea id="jsoninsert" cols=40 rows=10 class="maxwidth" style="display:none;font-family:courier;" placeholder="code for insert JSON (optional)"></textarea>
+-->
+</div>
+
 </td>
 </tr></table>
 <input id="SCOPE.state.title" placeholder="title (required)" class="maxwidth" onkeyup="SCOPE.state.title=this.value;" style="font-size:30px;"></input><br>
@@ -56,41 +91,6 @@
   </div>
 </div>
 
-<select id="optiondisp" onchange="setStyle('display',this.value,['debateoptions']);SCOPE.$digest();">
-  <option value="none">advanced options hidden</option>
-  <option value="">advanced options shown</option>
-</select><br>
-
-<div style="display:none" id="debateoptions" class="rounded">
-  <select id="SCOPE.choiceID" onchange="SCOPE.choiceID=this.value;SCOPE.$digest();">
-    <option value="none">use automatic choice identifiers</option>
-    <option value="">customize choice identifiers</option>
-  </select><br>
-
-  <select id="SCOPE.state.data.candidateOrder" onchange="SCOPE.state.data.candidateOrder=this.value;SCOPE.$digest();">
-    <option value=""      >Randomize candidate order during vote</option>
-    <option value="fixed" >Use exactly this order during vote</option>
-<!--
-    <option value="result">Order candidates by current results</option>
--->
-  </select><br>
-
-<select id="SCOPE.state.data.userSuggestion" onchange="SCOPE.state.data.userSuggestion=this.value;SCOPE.$digest();">
-  <option value=""    >vote only - voters cant offer additional suggestions</option>
-  <option value="once">one suggestion - each voter can offer just one suggestion</option>
-<!--
-  <option value="open">open discussion - voters can offer any number of suggestions</option>
--->
-</select><br>
-
-<!--
-  <select id="jsoninsertoption" onchange="setStyle('display',this.value,['jsoninsert','jsoninsertbutton']);SCOPE.refresh();SCOPE.$digest();">
-    <option value="none">hide JSON editor</option>
-    <option value="">show JSON editor</option>
-  </select><input id="jsoninsertbutton" type='button' value="use the following JSON" onclick='insertJSON();' style="display:none"></input><br>
-  <textarea id="jsoninsert" cols=40 rows=10 class="maxwidth" style="display:none;font-family:courier;" placeholder="code for insert JSON (optional)"></textarea>
--->
-</div>
 <br>
 <!--
 <hr>

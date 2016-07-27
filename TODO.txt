@@ -2,8 +2,6 @@ rank
 
 major features
 	X about page
-		mission: improve human decision making with software
-		link to wikipedia Instant Runoff Voting
 	- user page informs how many debates and votes you have made
 	- edit user page, including changing name
 	X public debates
@@ -20,6 +18,14 @@ major features
 	- public debates page should have 'manage' link for owned debates. 
 	X manage link in the 'vote.html', at the bottom of the page.
 	- poll owner can add as many suggestions as they want. database gives that voter id carte blanche, adds options direct to the candidates, and removes the author tag.
+	- delete debates and votes -- for real!
+	- make vote public - so it can be traced in the results
+	- content control
+		- flag debate as inappropriate - will hide content from that user, mark it for review, and be okayed or removed by a policing admin
+		- flag suggestion as inappropriate, which can be changed by the police or the debate owner
+	- special user flags
+		- admins, who can pretend to be other voters
+		- police, who can access a special judgement page, to identify debates, suggestions, and users, as appropriate or not (which will allow hide/deleteing content)
 
 debate admin:
 	X do not allow a debate to be submitted if more than one choice has the same ID.

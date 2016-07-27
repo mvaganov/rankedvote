@@ -4,7 +4,7 @@
 </style>
 <h1>{{state.title}}</h1><p ng-bind-html="state.data.prompt"></p>
 <div style="text-align:right" class="maxwidth" ng-if="creatorID==state.owner">
-  <a ng-href="../edit/{{state.id}}">edit</a><br>
+  <a ng-href="../edit/{{state.id}}">manage</a><br>
 </div>
 <table border=0 class="maxwidth"><tr><td>
   <span class="unslct">unselected</span>
@@ -15,12 +15,13 @@
   <div ng-repeat="choice in state.data.candidates" class="rounded choice">
     <table width=100%><tr>
       <td id="td_candidates{{$index}}">
-        <p ng-if="choice[0]!==undefined" ng-bind-html="choice[1]"></p>
+        <span ng-if="choice[0]!==undefined" ng-bind-html="choice[1]"></span>
         <input name="{{$index}}" ng-if="choice[0]===undefined" value="{{choice[1]}}" placeholder="leave empty to remove" onkeyup="SCOPE.state.data.candidates[parseInt(this.name)][1]=this.value;"></input>
       </td>
       <td ng-if="choice[2]==creatorID" style="text-align:right">
         <input type="button" ng-click="editOption('candidates',$index, this)" ng-value="(choice[0]!==undefined)?'edit':'done'"></input>
       </td>
+    </tr><tr ng-if="choice[2]"><td colspan=3 style="font-size:8px;text-align:right;font-style:italic">user suggestion</td>
     </tr></table>
   </div>
 </td><td style="vertical-align:text-top" class="rounded chosen slcted" ng-sortable="opts" onclick="dragTutorial()" id="userChoices">
@@ -28,22 +29,23 @@
     <table width=100%><tr>
       <td width=1px>{{$index+1}}</td>
       <td id="td_choices{{$index}}">
-        <p ng-if="choice[0]!==undefined" ng-bind-html="choice[1]"></p>
+        <span ng-if="choice[0]!==undefined" ng-bind-html="choice[1]"></span>
         <input name="{{$index}}" ng-if="choice[0]===undefined" value="{{choice[1]}}" placeholder="leave empty to remove" onkeyup="SCOPE.state.data.choices[parseInt(this.name)][1]=this.value;"></input>
       </td>
       <td ng-if="choice[2]==creatorID" style="text-align:right">
         <input type="button" ng-click="editOption('choices',$index, this)" ng-value="(choice[0]!==undefined)?'edit':'done'"></input>
       </td>
+    </tr><tr ng-if="choice[2]"><td colspan=3 style="font-size:8px;text-align:right;font-style:italic">user suggestion</td>
     </tr></table>
   </div>
 </td></tr>
 <tr><td>
-<input type='button' style="width:100%" ng-if="state.data.addedCandidate" ng-click="toggleUserChoices()" ng-value="(userChoicesOn?'remove user suggestions':'include user suggestions')"></input>
+<input type='button' style="width:100%" ng-if="state.data.addedCandidate" ng-click="toggleUserChoices()" ng-value="(userChoicesOn?'hide user suggestions':'include user suggestions')"></input>
 </td><td>
 <input type='button' style="width:100%" ng-if="canAddCandidate()" ng-click="addCandidate()" value='suggest another choice'></input>
 </td></tr>
 </table>
-<input type='button' ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt" ng-if="state.data.votability!='closed'" style="font-size:2em" value='vote'></input>
+<input type='button' ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt" ng-if="state.data.votability!='closed'" style="font-size:2em" ng-value='(state.rank && state.rank.length)?"revise vote":"vote"'></input>
 <!--
 <br><input type="checkbox" name="emailnotify" value="notify" text="sadf"> receive e-mail notification if a new suggestion becomes significant</input><br>
 -->
