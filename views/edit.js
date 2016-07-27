@@ -133,15 +133,15 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
           try{
             var response = JSON.parse(xhr.responseText);
             responseElement.innerHTML = '<br>Debate number: '+response.id;
-            if(!$scope.state.id) {
+            if(!$scope.state.id && response && response.id) {
               var nextLoc = location.protocol+"//"+window.location.host+"/edit/"+response.id;
               $scope.state.id = response.id;
               window.location = nextLoc;
             } else {
-              responsePulse("submission received","#0f0");
+              responsePulse("submission received"+xhr.responseText, "#0f0");
             }
           }catch(e){
-            responseElement.innerHTML = '<br>'+xhr.responseText;
+            responsePulse(xhr.responseText,"#f00");
           }
           document.cookie = "debate=";
         }

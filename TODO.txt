@@ -26,6 +26,7 @@ major features
 	- special user flags
 		- admins, who can pretend to be other voters
 		- police, who can access a special judgement page, to identify debates, suggestions, and users, as appropriate or not (which will allow hide/deleteing content)
+	- put user suggestion in cookie, so it comes back up if there is a problem with submission.
 
 debate admin:
 	X do not allow a debate to be submitted if more than one choice has the same ID.

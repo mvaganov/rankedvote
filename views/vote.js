@@ -134,6 +134,7 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
     };
     $scope.addCandidate = function() {
       $scope.state.data.choices.splice(0,0,[undefined,"",creatorID]);
+        SCOPE.opts.draggable = ".stopDrag"; // prevent items from being dragged
     };
     $scope.editOption = function(listname, index) {
       component = $scope.state.data[listname][index];
@@ -141,8 +142,10 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
       if(!readyForUse) {
         if(!component[1] || !component[1].length) {
           $scope.state.data[listname].splice(index,1);
-          for(var i=$scope.state.data.addedCandidate.length-1;i>=0;--i) {
-            if($scope.state.data.addedCandidate[i][2]==creatorID) { $scope.state.data.addedCandidate.splice(i,1); }
+          if($scope.state.data.addedCandidate) {
+            for(var i=$scope.state.data.addedCandidate.length-1;i>=0;--i) {
+              if($scope.state.data.addedCandidate[i][2]==creatorID) { $scope.state.data.addedCandidate.splice(i,1); }
+            }
           }
         } else {
           var idText = candidateNameFrom(component[1]);

@@ -475,7 +475,6 @@ app.get(['/edit/:did','/edit'], function (req, res, next) {
   } else if(did) {
     for(var i=0;i<did.length;++i) {
       if(did[i] < '0' || did[i] > '9') {
-        did = undefined;
         return END(req,res,"can't edit non-debate \""+did+"\"");
       }
     }
@@ -623,7 +622,10 @@ function PublicDebates_Get(req, res, startPageToken, callback) {
   });
 }
 function PublicDebates_ForceRefresh(req, res, startPageToken, callback) {
-  DS_uncacheListBy(T_DEBATE_ENTRY, {vis: 'public', SORTBY:["modified D"]}, 50, startPageToken, callback);
+  DS_uncacheListBy(T_DEBATE_ENTRY, {vis: 'public', SORTBY:["modified D"]}, 50, startPageToken, function(err){
+    log("###### OH NO! ERROR WHILE ASKING FOR REFRESH?! "+err);
+    callback(null);
+  });
 }
 
 app.get(['/debates','/debates/:type'], function(req, res) {
@@ -973,6 +975,7 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
   var MAX_IDENTIFIER_LENGTH = 32;
   waterfall([
     function validateDebate(callback) {
+      // log("------validate debate");
       if(!dat) { return callback("missing debate");}
       if(!dat.title) { return callback("missing debate title");}
       if(!dat.data) { return callback("missing debate data");}
@@ -981,18 +984,22 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
         callback(null);
       });
     }, function getVoter(callback) {
+      // log("------get voter");
       refreshDBAuthIfNeeded(req,res, function(){
         GetVoter(req, res, function(err,voter){scope.voter=voter;callback(err);});
       });
     }, function ensureOneMinuteBetweenVotes(callback) {
+      // log("------ensure 1 minute:    edit"+scope.voter.id);
       const MIN_MS_BETWEEN_DEBATE_EDITS = 60 * 1000;
       // console.log("edit voter "+scope.voter.name+" "+scope.voter.id+" "+scope.voter.email);
       ensureTimeBetween("edit"+scope.voter.id, "edit your debate", MIN_MS_BETWEEN_DEBATE_EDITS, callback);
-    }, function getDebate(callback) { 
+    }, function getDebate(callback) {
+      // log("------get debate "+did);
       if(did) { // updating existing debate
         DS_read(T_DEBATE, did, function(err, debate){scope.debate=debate;callback(null);});
       } else {scope.debate=null; callback(null);} // creating new debate
     }, function digestCookiesIntoDebate(callback) {
+      // log("------digest cookies for "+scope.dat.owner);
       if(!scope.dat) { return callback("ERROR missing debate cookie "+JSON.stringify(cookies)); }
       if(scope.dat.owner) { scope.dat.owner = scope.dat.owner.toString(); }
       if(scope.dat.id) { scope.dat.id = scope.dat.id.toString();
@@ -1004,6 +1011,7 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
       }
       callback(null);
     }, function createDebateIfMissing(callback) {
+      // log("------create debate if missing "+(scope.debate?"(already got it)":": NEED IT!"));
       if(!scope.debate) {// if there is no debate in the database yet, make one! It's expected to be there from this point on!
         return DS_update(T_DEBATE, undefined, scope.dat, function (err, debate) {
           scope.updatedDebateAlready = true;
@@ -1012,14 +1020,16 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
       } else if(scope.debate.id != scope.dat.id) { callback("ERROR debate ID mismatch in cookie");
       } else { callback(null); }
     }, function getDebateEntry(callback) {
+      // log("------get debate entry      for debate "+scope.debate.id);
       GetDebateEntry(scope.debate, function(err, data){scope.dentryEntity=data; callback(err);});
     }, function updateDebateIfNeeded(callback) {
-      log("updated already? "+scope.updatedDebateAlready);
+      // log("updated debate if needed (already?) "+scope.updatedDebateAlready);
       if(!scope.updatedDebateAlready || scope.debate.dentry != scope.dat.dentry) {
         scope.dat.dentry = scope.dentryEntity.id;
         DS_update(T_DEBATE, scope.dat.id, scope.dat, function (err, debate) { scope.debate=debate; callback(err); });
       } else { callback(null); }
     }, function updateDebateEntryTitleIfNeeded(callback) {
+      // log("update debate entry title if needed "+scope.dentryEntity.id);
       if(scope.debate.title != scope.dentryEntity.name
       || scope.debate.data.visibility != scope.dentryEntity.vis
       || scope.debate.data.votability != scope.dentryEntity.vot) {
@@ -1032,7 +1042,12 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
           PublicDebates_ForceRefresh(req, res, req.query.pageToken, callback);
         });
       } else { callback(null); }
-    }, function finished(callback) { res.json({id:scope.debate.id}); callback(null); }
+    }, function finished(callback) {
+      var resultObject = {id:scope.debate.id};
+      // log("finished with "+JSON.stringify(resultObject));
+      res.json({id:scope.debate.id});
+      callback(null);
+    }
   ], function error(err, result){ async_waterfall_error(err, req, res, result, scope); });
 });
 
@@ -1244,19 +1259,28 @@ membersToJsonStringifyFilters[T_DEBATE_RESULT] = ['data'];
 function DS_QueryIdString(q) {
   function serializeArray(arr) {
     var str = "";
-    if(arr){for(var i=0;i<arr.length;++i){if(i>0){str+=",";}str+=arr[i];}}
+    if(arr){
+      if(arr.constructor === Array){for(var i=0;i<arr.length;++i){if(i>0){str+=",";}str+=arr[i];}}
+      else if(typeof arr === 'object'){for(var k in arr){str+=k+":"+arr[k];}}
+    }
     return str;
   }
   var serialized=""; if(q.namespace) { serialized += q.namespace; }
   serialized += ";"; serialized += serializeArray(q.kinds);
   serialized += ";";
   if(q.filters) {
-    for(var i=0;i<q.filters.length;++i){
+    for(var i=0;i<q.filters.length;++i) {
       if(i>0){serialized+=",";}
       var f=q.filters[i];serialized+=f.name+f.op+f.val;
     }
   }
-  serialized += ";"; serialized += serializeArray(q.orders);
+  serialized += ";";
+  if(q.orders) {
+    for(var i=0;i<q.orders.length;++i) {
+      if(i>0){serialized+=",";}
+      var f=q.orders[i];serialized+=f.name+(f.sign)?f.sign:"";
+    }
+  }
   serialized += ";"; serialized += serializeArray(q.groupByVal);
   serialized += ";"; serialized += serializeArray(q.selectVal);
   serialized += ";"; serialized += (q.autoPaginateVal)?"1":"0";
@@ -1265,7 +1289,7 @@ function DS_QueryIdString(q) {
   serialized += ";"; if(q.limitVal) serialized += q.limitVal;
   serialized += ";"; if(q.offsetVal) serialized += q.offsetVal;
   serialized += ";";
-  // log("QUERY ID:"+serialized);
+  log("QUERY ID:"+serialized);
   return serialized;
 }
 function DS_UpdateIdString(kind,id) {
