@@ -685,11 +685,11 @@ app.get(['/user','/user/:type'], function(req, res) {
       GetVoter(req, res, function(err,voter){scope.voter=voter;callback(err);});
     }, function getMyDebates(callback) {
       if(scope.voter && (req.params.type == "all" || !req.params.type)) {
-        DS_listBy(T_DEBATE_ENTRY, {owner: scope.voter.id}, 50, req.query.pageToken,
+        DS_listBy(T_DEBATE_ENTRY, {owner: scope.voter.id, SORTBY:["vis D","modified D"]}, 50, req.query.pageToken,
           function(err,debates,pageToken){scope.debates = {debates:debates,pageToken:pageToken}; callback(err);});
       } else if(req.params.type) {
         log(req.params.type+" debates plz!");
-        DS_listBy(T_DEBATE_ENTRY, {owner: scope.voter.id, vis: req.params.type}, 50, req.query.pageToken,
+        DS_listBy(T_DEBATE_ENTRY, {owner: scope.voter.id, vis: req.params.type, SORTBY:["modified D"]}, 50, req.query.pageToken,
           function(err,debates,pageToken){ scope.debates = {debates:debates,pageToken:pageToken}; callback(err);});
       } else {
         scope.debates = {debates:[],pageToken:null}; callback(null);

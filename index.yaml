@@ -26,6 +26,15 @@ indexes:
   - name: modified
     direction: desc
 
+- kind: debateentry
+  ancestor: no
+  properties:
+  - name: owner
+  - name: vis
+    direction: desc
+  - name: modified
+    direction: desc
+
 # - kind: result
 #   properties:
 #   - name: modified
