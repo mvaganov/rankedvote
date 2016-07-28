@@ -386,7 +386,13 @@ var writeWebpageHeader = function(req, res, title, includesPath, includes, codeT
     }
     var hv = cachedHeader.meta.variables;
     var fillVariables = {};
-    fillVariables[hv.title] = title || cachedHeader.meta.title;
+    var t, heading;
+    if(title && title.constructor === Array) {
+      t = title[0];
+      heading = title[1%title.length];
+    }
+    fillVariables[hv.title] = t || title;
+    fillVariables[hv.heading] = heading || title;
     if(codeToInsert) { codeToInsert = "<script>"+codeToInsert+"</script>"; } else { codeToInsert=""; }
     fillVariables[hv.code] = codeToInsert;
     fillVariables[hv.includes] = includeHtml;
@@ -806,7 +812,8 @@ app.get(['/vote/:did','/votex/:did','/vote'], function(req, res, next) {
       }
       if(!scope.state) {scope.state=scope.debate;}
       var codeToInsert="var RankedVote_servedData="+ JSON.stringify(scope.state) + ";var creatorID=\'"+((scope.voter)?scope.voter.id:0)+"\';";
-      writeWebpageHeader(req, res, scope.cachedBody.meta.title, "../", scope.cachedBody.meta.includes, codeToInsert, callback);
+      writeWebpageHeader(req, res, [scope.state.title, scope.cachedBody.meta.title],
+        "../", scope.cachedBody.meta.includes, codeToInsert, callback);
     }, function writeBody(callback) { writeWebpageBody(req,res, scope.cachedBody, callback);
     }, function writeFooter(callback) { writeWebpageFooter(req, res, function(){END(req,res); callback(null);}); }
   ], function error(err, result){ async_waterfall_error(err, req, res, result, scope); });
@@ -880,7 +887,7 @@ function calculateResults(req, res, scope, whenFinished) {
             }
           }
         } else if(cand.constructor == Array) {
-          var allText = "",allImg="";
+          var allText = ((cand.length>2)?(cand.length+" way "):"")+"TIE<br>";
           var additions = 0;
           var list = candidateSource;
           for(var i=0;i<list.length;++i) { 
