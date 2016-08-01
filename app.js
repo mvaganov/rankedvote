@@ -1082,6 +1082,9 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
       refreshDBAuthIfNeeded(req,res, function(){
         GetVoter(req, res, function(err,voter){scope.voter=voter;callback(err);});
       });
+    }, function ensureEditsAreaAllowed(callback) {
+      if(dat.data.visibility == 'public' && !Voter_CanPostPublic(scope.voter)) { return callback("user not allowed to post publicly"); }
+      callback(null);
     }, function ensureOneMinuteBetweenVotes(callback) {
       // log("------ensure 1 minute:    edit"+scope.voter.id);
       const MIN_MS_BETWEEN_DEBATE_EDITS = 60 * 1000;
