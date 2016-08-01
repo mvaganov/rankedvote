@@ -194,7 +194,7 @@ var IRV_calculateVisualizationModel = function(out_visBlocs, voteStateHistory, v
       weightsForThisVisualization[c] = val;
     }
   }
-  console.log(JSON.stringify(weightsForThisVisualization));
+  // console.log(JSON.stringify(weightsForThisVisualization));
   candidateWeight = weightsForThisVisualization;
 
   var calculateBlocs = function(sorted, voteState, candidateWeight) {
