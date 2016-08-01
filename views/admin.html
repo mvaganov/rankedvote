@@ -1,15 +1,19 @@
-<!--{includes:["angular.min.js", "common.js", "user.js"],title:"Personal"}-->
-<h3>Manage Debates</h3>
+<!--{includes:["angular.min.js", "common.js", "admin.js"],title:"Admin"}-->
+<h3><a onclick="SCOPE.beUser(this.name)" name="0">Manage Debates</a></h3>
 <table border=0 class="maxwidth">
   <tr ng-repeat="debate in state.debates">
     <td>{{debate.vis}}</td>
     <td>{{debate.vot}}</td>
     <td width=100%><a href="../edit/{{debate.did}}">{{debate.name}}</a></td>
     <td><a href="../result/{{debate.did}}">results</a></td>
+    <td><a onclick="SCOPE.beUser(this.name)" name="{{debate.owner}}">{{debate.owner}}</a></td>
   </tr>
   <tr>
-  	<td colspan=9>+ (<a href="../edit">new debate</a>)</td></tr>
+  	<td colspan=9>+ (<a href="../edit/public">new debate</a>)</td></tr>
 </table>
+
+<div id="response"></div>
+
 <h3>Coming soon: Editing {{state.name}}'s Profile</h3>
 <table><tr>
   <tr><td>edit user name</td></tr>

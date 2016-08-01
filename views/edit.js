@@ -76,6 +76,7 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
       };
     }
     $scope.choiceID = "none";
+    $scope.canPostPublic = canPostPublic;
     // check if there is data in the cookie.
     var cookieTable = parseCookies(document.cookie);
     if(cookieTable.debate) {

@@ -239,18 +239,27 @@ function ensureLoginGET(req, res) {
   return gid;
 }
 
+function GetVoter_Filter(err, voterEntry, cb, getTrueVoter) {
+  if(voterEntry.data.admin && !getTrueVoter) {
+    if(typeof voterEntry.data.admin === 'object') {
+      return cb(err, voterEntry.data.admin);
+    }
+  }
+  return cb(err, voterEntry);
+}
+
 /** 
  * @param cb {function(err, voterRecord)}
  * @param FORCED if true, will force a database call
  */
-function GetVoter(req, res, cb, FORCED) {
+function GetVoter(req, res, cb, FORCED, getTrueVoter) {
   var userID = GetUserID(req);
   if(!userID) {return cb(null,null);}
   if(!req.session) {return cb("missing session");}
   if(!req.session.rankedvote) { req.session.rankedvote = {}; }
   if(req.session.rankedvote.voter && !FORCED
   && req.session.rankedvote.voter.email == req.session.passport.user.email) {
-    return cb(null, req.session.rankedvote.voter); // cached voter
+    return GetVoter_Filter(null, req.session.rankedvote.voter, cb, getTrueVoter); // cached voter
   }
   //log("getting voter ID for "+userID);
   if(userID !== null) {
@@ -264,17 +273,17 @@ function GetVoter(req, res, cb, FORCED) {
           gid: userID,
           email: req.session.passport.user.email,
           name: req.session.passport.user.displayName,
-          data: "{pic:'"+req.session.passport.user.image+"';}", // TODO timestamp vote (timestamp+1m), debate (timestamp+1h), edit debate (timestamp+1m), user update (timestamp+1m)
+          data: {pic:req.session.passport.user.image}, // TODO timestamp vote (timestamp+1m), debate (timestamp+1h), edit debate (timestamp+1m), user update (timestamp+1m)
         };
         DS_update(T_VOTER, null, dat, function (err, entity) {
           req.session.rankedvote.voter = entity;
-          return cb(err, entity);
+          return GetVoter_Filter(err, entity, cb, getTrueVoter);
         });
       } else {
         var err = null;
         if(entities.length != 1) err = entities.length+" records for "+userID;
         req.session.rankedvote.voter = entities[0];
-        return cb(err, entities[0]);
+        return GetVoter_Filter(err, entities[0], cb, getTrueVoter);
       }
     });
   }
@@ -351,8 +360,12 @@ function printPropertiesOf(obj) {
 const vm = require('vm'); // for running possibly unsafe code
 function saferParse(jsonText) {
   var sandbox = {};
+  try{
   // "use strict;" should prevent arguments.callee.caller from breaking encapsulation
   vm.runInNewContext("\"use strict\"; var dat = "+jsonText, sandbox);
+  }catch(err){
+    console.log("FAILED SAFERPARSE: "+err+"\n-------------------------\n"+jsonText+"\n-------------------------");
+  }
   return sandbox.dat;
 }
 
@@ -512,12 +525,17 @@ app.get(['/edit/:did','/edit'], function (req, res, next) {
         ((isPublic)?",visibility:'public'":"")+"},title:\"\"};";
       }
       var voterID = (scope.voter)?scope.voter.id:0;
-      var codeToInsert="var RankedVote_servedData="+ debateData + ";var creatorID=\'"+voterID+"\';";
+      var canPostPublic = Voter_CanPostPublic(scope.voter);
+      var codeToInsert="var RankedVote_servedData="+ debateData + ";var creatorID=\'"+voterID+"\';var canPostPublic="+canPostPublic+";";
       writeWebpageHeader(req, res, (((did)?'Edit':'New')+' Debate'), "../", scope.cachedBody.meta.includes, codeToInsert, callback);
     }, function writeBody(callback) { writeWebpageBody(req,res, scope.cachedBody, callback);
     }, function writeFooter(callback) { writeWebpageFooter(req, res, function(){END(req,res); callback(null);}); }
   ], function error(err, result){ async_waterfall_error(err, req, res, result, scope); });
 });
+
+function Voter_CanPostPublic(voter) {
+  return voter.data && (voter.data.canPostPublic || (voter.data.admin !== undefined && voter.data.admin !== null && voter.data.admin !== false));
+}
 
 app.get('/about.html', function (req, res, next) {
   var scope = {};
@@ -658,6 +676,75 @@ app.get(['/debates','/debates/:type'], function(req, res) {
       writeWebpageHeader(req, res, scope.cachedBody.meta.title, "../", scope.cachedBody.meta.includes, codeToInsert, callback);
     }, function writeBody(callback) { writeWebpageBody(req,res, scope.cachedBody, callback);
     }, function writeFooter(callback) { writeWebpageFooter(req, res, function(){END(req,res); callback(null);}); }
+  ], function error(err, result){ async_waterfall_error(err, req, res, result, scope); });
+});
+
+app.get('/admin', function(req,res) {
+  var scope = {};
+  waterfall([
+    function getVoter(callback) {
+      GetVoter(req, res, function(err,voter){scope.voter=voter;callback(err);}, false, true);
+    }, function assertAdmin(callback) {
+      if(scope.voter.data.admin) { callback(null); } else { callback("missing admin rights"); }
+    }, function getPublicDebates(callback) {
+      //PublicDebates_Get(req, res, req.query.pageToken, function(err, debates) { scope.debates = debates; callback(err); });
+      DS_listBy(T_DEBATE_ENTRY, {SORTBY:["vis","modified D"], FORCED:true}, 50, req.query.pageToken,
+        function(err,debates,pageToken) { scope.debates = {debates:debates, pageToken:pageToken}; callback(err);
+      });
+    }, function checkMessinessOfDebateEntriesAndCleanup(callback) {
+      if(scope.debates){
+        checkAndFixMultipleDebateEntries(req, res, scope.debates.debates, callback);
+      } else { callback(null); }
+    }, function getBody(callback) {
+      getCacheWebpageBody('views/admin.html', function (err, cachedBody) {scope.cachedBody=cachedBody;callback(err);});
+    }, function writeHeader(callback) {
+      var debatesToSend = [];
+      for(var i=0;i<scope.debates.debates.length;++i){
+        var d = scope.debates.debates[i];
+        debatesToSend.push({name:d.name,vot:d.vot,vis:d.vis,did:d.did,modified:d.modified,owner:d.owner});
+      }
+      var state = {name:(scope.voter)?scope.voter.name:"not-logged-in", debates:debatesToSend};
+      var codeToInsert="var RankedVote_servedData="+ JSON.stringify(state) + ";var creatorID=\'"+((scope.voter)?scope.voter.id:0)+"\';";
+      writeWebpageHeader(req, res, scope.cachedBody.meta.title, "../", scope.cachedBody.meta.includes, codeToInsert, callback);
+    }, function writeBody(callback) { writeWebpageBody(req,res, scope.cachedBody, callback);
+    }, function writeFooter(callback) { writeWebpageFooter(req, res, function(){END(req,res); callback(null);}); }
+  ], function error(err, result){ async_waterfall_error(err, req, res, result, scope); });
+});
+
+// TODO
+app.post('/admin/:vid', function update (req, res, next) {
+  var scope = {};
+  waterfall([
+    function getVoter(callback) {
+      refreshDBAuthIfNeeded(req,res, function() {
+        GetVoter(req, res, function(err,voter){
+          if(!voter) { return callback("redirect:"+getForcedLoginUrl(req)); } scope.voter=voter; callback(err);
+        }, false, true);
+      });      
+    }, function assertAdmin(callback) {
+      if(scope.voter.data.admin) { callback(null); } else { callback("missing admin rights"); }
+    }, function getVoterToFilterAs(callback) {
+      if(req.params.vid === 0 || req.params.vid === '0') {
+        scope.voter.data.admin = true;
+        callback(null);
+      } else if(req.params.vid) {
+        DS_read(T_VOTER, req.params.vid, function(err, otherVoter){
+          if(otherVoter) {
+            scope.voter.data.admin = otherVoter;
+          }
+          scope.otherVoter = otherVoter;
+          callback(err);
+        });
+      } else {
+        END(req,res,"missing voter ID");
+      }
+    }, function response(callback) {
+      if(scope.voter.data.admin === true) {
+        END(req,res,"reverting to <img src='"+scope.voter.data.pic+"'> "+scope.voter.name);
+      }else {
+        END(req,res,"filtering as <img src='"+scope.otherVoter.data.pic+"'> "+scope.otherVoter.name);
+      }
+    }
   ], function error(err, result){ async_waterfall_error(err, req, res, result, scope); });
 });
 
@@ -948,7 +1035,7 @@ app.get('/result/:did', function(req, res, next) {
       getCacheWebpageBody('views/result.html', function (err, cachedBody) {scope.cachedBody=cachedBody;callback(err);});
     }, function writeHeader(callback) {
       var codeToInsert="var RankedVote_servedData="+JSON.stringify(scope.state)+";";
-      writeWebpageHeader(req, res, scope.cachedBody.meta.title, "../", scope.cachedBody.meta.includes, codeToInsert, callback);
+      writeWebpageHeader(req, res, [scope.state.title, scope.cachedBody.meta.title], "../", scope.cachedBody.meta.includes, codeToInsert, callback);
     }, function writeBody(callback) { writeWebpageBody(req,res, scope.cachedBody, callback);
     }, function writeFooter(callback) { writeWebpageFooter(req, res, function(){END(req,res); callback(null);}); }
   ], function error(err, result){ async_waterfall_error(err, req, res, result, scope); });

@@ -7,7 +7,7 @@
 <table class="maxwidth"><tr><td>
 <select id="SCOPE.state.data.visibility" onchange="SCOPE.state.data.visibility=this.value;">
   <option value="private">private - not in a directory, but the link can be shared</option>
-  <option value="public" >public - a link can be found in the public debate list</option>
+  <option value="public" ng-if="canPostPublic">public - a link can be found in the public debate list</option>
   <option value="hidden" >hidden - can no longer be accessed at all</option>
   <option value="deleted" ng-if="state.id">deleted - hidden access, will be removed soon</option>
 </select><br>
