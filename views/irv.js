@@ -88,12 +88,12 @@ var IRV_createColorMapLookupTable = function(listing) {
  * @param allChoicesPossible if true, will include all ranked choices, even those not at the front of the tally
  * @return list of choices from the tally, ordered by weight in the tally
  */
-var IRV_orderChoices = function(tally, tieBreakerData, allChoicesPossible) {
+var IRV_orderChoices = function(tally, tieBreakerData, allChoicesPossible, forceTieBreakerDataAsOrder) {
   var order = [];
   for(k in tally) { order.push(k); }
   order.sort(function(a,b){
     var diff = tally[b].length - tally[a].length
-    if(diff == 0) {
+    if(forceTieBreakerDataAsOrder || diff == 0) {
       diff = tieBreakerData[b] - tieBreakerData[a];
     }
     return diff;
@@ -126,11 +126,16 @@ var IRV_orderChoices = function(tally, tieBreakerData, allChoicesPossible) {
 
 var IRV_whoVotedMoreThanOnce = function(allBallots) {
   // TODO if allBallots is very large, use a different algorithm. this is O(n^2).
-  var hasVote = [];
+  function _indexOfVoter(list, voterID, start, end) {
+    if(list) { for(var i=start;i<end;++i) { if(list[i].id == voterID) { return i; } } }
+    return -1;
+  }
+  //var hasVote = [];
   for(var i=0;i<allBallots.length;++i){
-    if(hasVote.indexOf(allBallots[i].id) < 0) {
-      hasVote.push(allBallots[i].id);
-    } else {
+    // if(hasVote.indexOf(allBallots[i].id) < 0) {
+    //   hasVote.push(allBallots[i].id);
+    // } else {
+    if(_indexOfVoter(allBallots, allBallots[i].id, i+1, allBallots.length) >= 0) {
       return allBallots[i].id;
     }
   }
@@ -175,6 +180,23 @@ var IRV_calculateVisualizationModel = function(out_visBlocs, voteStateHistory, v
   var blocsThisState = [];
   var blocsLastState = null;
 
+  // to make the visualization more coherent, calculate the order in which candidates are exhausted, and weight them visually that way
+  var weightsForThisVisualization = {};
+  for(var s=0;s<voteStateHistory.length;++s) {
+    var state = voteStateHistory[s];
+    for(var c in state) {
+      var val = weightsForThisVisualization[c];
+      if(!val) {
+        val = state[c].length;
+      } else {
+        val += state[c].length;
+      }
+      weightsForThisVisualization[c] = val;
+    }
+  }
+  console.log(JSON.stringify(weightsForThisVisualization));
+  candidateWeight = weightsForThisVisualization;
+
   var calculateBlocs = function(sorted, voteState, candidateWeight) {
     var blocsThisState = [];
     var cursor = 0;
@@ -195,7 +217,7 @@ var IRV_calculateVisualizationModel = function(out_visBlocs, voteStateHistory, v
 
   for(var stateIndex=0;stateIndex<voteStateHistory.length;++stateIndex) {
     // sort the candidates based on who is likely to win right now
-    var sorted = IRV_orderChoices(voteStateHistory[stateIndex], candidateWeight, false);
+    var sorted = IRV_orderChoices(voteStateHistory[stateIndex], candidateWeight, false, true);
     // organize those candidates into blocs, and put all those blocs into a list. this is a vote state
     blocsThisState = calculateBlocs(sorted, voteStateHistory[stateIndex], candidateWeight);
     // add the vote state to a list of vote states
