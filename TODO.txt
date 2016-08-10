@@ -28,6 +28,10 @@ major features
 		- police, who can access a special judgement page, to identify debates, suggestions, and users, as appropriate or not (which will allow hide/deleteing content)
 	- put user suggestion in cookie, so it comes back up if there is a problem with submission.
 	X Identify a TIE very clearly in the results
+	- combine similar debates
+	- separate two debates
+	- validate debates, votes, and build a system to make other data structures more easily validate-able
+	
 
 debate admin:
 	X do not allow a debate to be submitted if more than one choice has the same ID.
@@ -56,6 +60,7 @@ server cleanup
 	X remove jade and bootstrap dependencies
 	X refactor app.js
 	X cache database queries in memory
+	- refactor app.js... again.
 
 security
 	X minimum wait-time between debate creations and vote submissions per user, shown on client, enforced on server.

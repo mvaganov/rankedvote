@@ -8,6 +8,63 @@ var simplifiedListOfListsToList = function(listOfLists) {
   return result;
 };
 
+var createNewCommentDebate = function (commentData) {
+  var relativePath = window.location.toString();
+  relativePath = relativePath.substring(relativePath.indexOf("/vote"));
+  var linkBack = "<a href='"+relativePath+"'>"+SCOPE.state.title+"</a>"
+  // ask the system to make a new debate for discussing this item
+  var newDiscussion = {
+    title: SCOPE.state.title+" -> "+commentData[0],
+    prompt: "from "+linkBack+"<br><br>"+commentData[1]+"<br><br>"+
+    "Order comments and suggestions by value and relevance."+
+    "<br><br>from "+linkBack,
+    owner: creatorID,
+    data: {
+      visibility: 'private'
+    },
+    linkedFrom: SCOPE.state.id // when this is read on the server, the debate is changed, so a discussions element is added
+  };
+
+  console.log("need to create debate: "+JSON.stringify(newDiscussion,null,2));
+  // HTTP post the new debate
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function() {
+    // clear the data from the cookie once the data is properly sent.
+    if (xhr.readyState == 4 && xhr.status == 200) {
+      try{
+        var response = JSON.parse(xhr.responseText);
+        responsePulse('Discussion ID: '+response.id, '#0f0');
+      }catch(e){
+        responsePulse(xhr.responseText, '#f00');
+      }
+      var redirectHead = "redirect:";
+      if(xhr.responseText.startsWith(redirectHead)) {
+        window.location = xhr.responseText.substring(redirectHead.length);
+        return;
+      }
+      // add the discussions element locally
+      if(!SCOPE.state.data.discussions) { SCOPE.state.data.discussions = {}; }
+      SCOPE.state.data.discussions[commentData[0]] = {href:response.id};
+      document.cookie = "disc=";
+    }
+  };
+  var submisison = JSON.stringify(newDiscussion);
+  console.log("to submit: "+submisison);
+  // document.cookie = "disc=" + submisison;
+  // xhr.open('post', relativePath);
+  // xhr.send();
+}
+
+var doComment = function(commentData) {
+  // if this comment (by ID) has a discussion link
+  if(SCOPE.state.data.discussions && SCOPE.state.data.discussions[commentData[0]]) {
+    // go to that discussion
+    window.location = SCOPE.state.data.discussions[disc].href
+  } else { // otherwise
+    createNewCommentDebate(commentData);
+  }
+}
+
 var toggleUserChoices = function() {
   var list = SCOPE.state.data.addedCandidate;
   if(!list) return;
@@ -120,6 +177,8 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
     $scope.state = RankedVote_servedData;
     $scope.log = log;
     $scope.toggleUserChoices = toggleUserChoices;
+    $scope.doComment = doComment;
+    // console.log(JSON.stringify($scope.state, null, 2));
     $scope.canAddCandidate = function(){
       return $scope.state.data.userSuggestion=='open'
       || ($scope.state.data.userSuggestion=='once' && (function countMyOptions(){

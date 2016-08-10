@@ -164,31 +164,15 @@ app.get('/rand', function (req, res, next) {
   });
 });
 
-app.use(
-  timedRouter(
-    session(sessionConfig)
-  ,"session(config)")
-);
+app.use(timedRouter(session(sessionConfig),"session(config)"));
 // [END session]
 
 // OAuth2 --THANKS GOOGLE!
-app.use(
-  timedRouter(
-    passport.initialize()
-  ,"passport.initialize")
-);
-app.use(
-  timedRouter(
-    passport.session()
-  ,"passport.session")
-);
+app.use(timedRouter( passport.initialize(),"passport.initialize"));
+app.use(timedRouter( passport.session(),"passport.session"));
 
 // TODO cache the require call?
-app.use(
-  timedRouter(
-    require('./lib/oauth2').router
-  ,"lib/oauth2")
-); // handle the authentication heavy lifting plz k thx
+app.use(timedRouter(require('./lib/oauth2').router,"lib/oauth2")); // handle the authentication heavy lifting plz k thx
 
 function refreshDBAuthIfNeeded(req, res, cb) {
   if(req.session && !req.session.dbAuthExpire) {
@@ -968,11 +952,14 @@ function calculateResults(req, res, scope, whenFinished) {
         var cand = scope.state.result[r].C;
         if(typeof cand === 'string') {
           var list = candidateSource;
+          var foundData = false;
           for(var i=0;i<list.length;++i) { 
             if(list[i][0] == cand) { 
+              foundData = true;
               scope.state.info.push(list[i]); break; 
             }
           }
+          if(!foundData) { scope.state.info.push([cand, cand+"<br>option removed"]); }
         } else if(cand.constructor == Array) {
           var allText = ((cand.length>2)?(cand.length+" way "):"")+"TIE<br>";
           var additions = 0;
@@ -1073,6 +1060,8 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
       if(!dat) { return callback("missing debate");}
       if(!dat.title) { return callback("missing debate title");}
       if(!dat.data) { return callback("missing debate data");}
+      // TODO validate all elements using some clever data-driven approach, including the variables in data.
+
       irv_validateCandidates([scope.dat.data.candidates, scope.dat.data.choices], function(err){
         if(err){ return callback(err); }
         callback(null);
@@ -1139,6 +1128,10 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
           PublicDebates_ForceRefresh(req, res, req.query.pageToken, callback);
         });
       } else { callback(null); }
+    }, function linkDiscussionToDebateIfNeeded(callback) {
+      // TODO if this debate is a discussion of an element from a linked debate ()
+      // if(!SCOPE.state.data.discussions) { SCOPE.state.data.discussions = {}; }
+      // SCOPE.state.data.discussions[commentData[0]] = {href:response.id};
     }, function finished(callback) {
       var resultObject = {id:scope.debate.id};
       // log("finished with "+JSON.stringify(resultObject));
@@ -1298,6 +1291,7 @@ schema[T_DEBATE] = {
     'title': t_STR,
     'created': t_NUM, // timestamp in milliseconds (64 bit int)
     'modified': t_NUM, // when the data was changed most recently
+    'category': t_JSON, // helps organize debates. array of paths (a debate can be in multiple tiered categories)
     'data': t_JSON // prompt, image details, candidates, other settings. details of who won and how.
 };
 schema[T_DEBATE_ENTRY] = {
@@ -1338,6 +1332,150 @@ schema[T_VOTE] = {
     'modified': t_NUM, // when the vote was cast most recently
     'data': t_JSON // choices and other data
 };
+
+////////////////////////////////////////////////////////////////////////////////
+function validationWalk(req,res,obj, variable, validationMap, path, callback) {
+  var scope = {};
+  waterfall([
+    function validationFunction(cb) {
+      if(typeof validationMap === 'function') { return validationMap(path, variable, obj, cb); }
+      cb(null);
+    }, function validateSubObject(cb) {
+      if(typeof validationMap === 'object') {
+        if(typeof variable !== 'object') {
+          return cb("expected '"+path+"' to be an object, not "+JSON.stringify(variable));
+        }
+        var alteredPath = path.concat("");
+        var keys = Object.keys(variable);
+        var keyIndex = 0;
+        // for(var k in variable) {
+        function iterateAcrossKeys() {
+          var k = keys[keyIndex];
+          alteredPath[alteredPath.length-1] = k;
+          var validator = validationMap[k];
+          if(!validator) {
+            validator = validationMap['undefined'];
+            if(!validator) { return cb("missing validator for "+path); }
+          }
+          validationWalk(req,res,obj, variable[k], validator, alteredPath, function(err) {
+            if(err) { return cb(err); }
+            keyIndex++;
+            if(keyIndex < keys.length) { 
+              if(keyIndex % 4 == 0) { return setTimeout(iterateAcrossKeys, 0); } // prevent stack overflow
+              return iterateAcrossKeys();
+            }
+            return cb(null);
+          });
+        }
+      } else {
+        return cb("validation map should only be function or object. validation map at '"+path+"' is '"+validationMap+"'");
+      }
+    }, function checkRequired(cb) {
+      if(typeof validationMap === 'object') {
+        for(var k in validationMap) {
+          if(validationMap[k] == v_required && !variable[k]) {
+            return v_required(path.contat(k), variable[k], obj, cb);
+          }
+        }
+      }
+    }, function allChecksDone(cb) {
+      callback(null);
+    }], function error(err,result) { async_waterfall_error(err,req,res,result,scope); }
+  );
+}
+function v_optional(varPath, variable, dat, cb) { return cb(null); }
+function v_required(varPath, variable, dat, cb) { if(!variable) { return cb("missing "+varPath); } return cb(null); }
+function v_invalid(varPath, variable, dat, cb) { cb("invalid data: "+varPath); }
+function v_string(varPath, variable, dat, cb) {
+  if(typeof variable === 'string') return cb(null);
+  cb("expected "+varPath+" to be a string instead of: "+JSON.stringify(variable));
+}
+function v_validateOneOf(varPath, variable, dat, required, validOptionList, errcb) {
+  if(required && !variable) { return errcb("missing "+varPath); }
+  if(variable && validOptionList.indexOf(variable) < 0) {
+    return errcb("invalid value for '"+varPath+"', value is '"+variable+"', expected one of: ["+validOptionList+"]");
+  }
+  errcb(null);
+}
+function v_optionalEmailList(varPath, variable, dat, cb) { 
+  if(variable) {
+    for(var i=0;i<variable.length;++i) {
+      // TODO validate that variable[i] is a valid e-mail address
+      var email = variable[i];
+      var atSign = email.indexOf('@'), dot;
+      if(atSign >= 0) {
+        dot = email.indexOf('.', atSign);
+      }
+      if(atSign < 0 || dot < 0) { return cb(JSON.stringify(variable[i])+" is not a valid e-mail address"); }
+    }
+  }
+  return cb(null); 
+}
+var validationMap_debate = {
+  'undefined': v_invalid,
+  id: v_optional,
+  owner: v_required,
+  dentry: v_optional,
+  title: v_string,
+  created: v_optional,
+  modified: v_optional,
+  category: v_optional, // TODO check if categories exist.
+  data: {
+    'undefined': v_invalid,
+    candidates: v_optional, // TODO validate list, validate HTML in [i][1]
+    choices: v_optional, // TODO validate list, validate HTML in [i][1]
+    addedCandidate: v_optional, // TODO validate list, validate HTML in [i][1]
+    imgdisp: v_optional,
+    prompt: v_required, // TODO validate HTML
+    visibility: function visibility(path,v,d,ecb){validateOneOf(path,v,d,true, ['public','private','hidden','deleted'], ecb)},
+    votability: function votability(path,v,d,ecb){validateOneOf(path,v,d,false,['','anyone','closed','exclusive','secured'], ecb)},
+    candidateOrder: function corder(path,v,d,ecb){validateOneOf(path,v,d,false,['','fixed','random','result'], ecb)},
+    userSuggestion: function usrsug(path,v,d,ecb){validateOneOf(path,v,d,false,['','once','open'], ecb)},
+    userDiscussion: function usrdis(path,v,d,ecb){validateOneOf(path,v,d,false,['','disabled','open'], ecb)},
+    linkedFrom: function linkedFrom(varPath, variable, dat, errorcallback) {
+      if(variable) {
+        // TODO validate existing debate ID
+        scope.linkedFrom = variable;
+        dat.linkedFrom = undefined;
+        delete dat.linkedFrom;
+      }
+      return true;
+    }
+  }
+};
+
+////////////////////////////////////////////////////////////////////////////////
+var validationMap_category = {
+  'undefined': v_invalid,
+  title: v_string,
+  moderator:v_optionalEmailList, // who has rights to
+  admin:v_optionalEmailList, // who can change moderator/admin rights
+  banned:v_optionalEmailList, // who is not allowed in this category
+  subscribed:{ // list of emails to notify if ...
+    'undefined': v_invalid,
+    newdebate:v_optionalEmailList, // a new debate is put in this category
+    newsub:v_optionalEmailList, // a new category is created
+    admin:v_optionalEmailList, // moderator/admin changes are made (added/removed from any of these lists)
+  },
+  content:{
+    'undefined': v_optional // debates in this category
+  },
+  sub:{
+    'undefined': v_optional // sub-categories (which should conform to this category specification)
+  },
+  // arraytest:[1,2,3]
+};
+// validationMap_category['zubalubadubdub'] = validationMap_category.arraytest;
+console.log(JSON.stringify(validationMap_category, null, 2));
+console.log("------");
+var stringified = mvaganov.stringify(validationMap_category, null, 2);
+console.log(stringified);
+console.log("---------");
+var objected = mvaganov.parse(stringified);
+console.log("---------");
+console.log(JSON.stringify(objected, null, 2));
+console.log(mvaganov.stringify(objected, null, 2));
+////////////////////////////////////////////////////////////////////////////////
 
 var nonIndexFilters = {};
 nonIndexFilters[T_VOTE] = ['data'];

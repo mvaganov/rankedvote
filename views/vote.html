@@ -18,12 +18,17 @@
         <span ng-if="choice[0]!==undefined" ng-bind-html="choice[1]"></span>
         <textarea rows="4" cols="30" name="{{$index}}" ng-if="choice[0]===undefined" placeholder="leave empty to remove" onkeyup="SCOPE.state.data.candidates[parseInt(this.name)][1]=this.value;">{{choice[1]}}</textarea>
       </td>
-    </tr><tr ng-if="choice[2]">
+    </tr><tr>
     <td colspan=3>
-      <table class="maxwidth" style="font-size:8px;font-style:italic"><tr><td style="text-align:right">
-        <input type="button" href="javascript:;" ng-if="choice[2]==creatorID" ng-click="editOption('candidates',$index, this)" ng-value="(choice[0]!==undefined)?'edit':'done'" style="padding:0;border:none;background:none;text-decoration:underline;"></input>
-        <span ng-if="choice[2] && choice[2]!==creatorID">user suggestion</span>
-      </td></tr></table>
+      <table class="maxwidth" style="font-size:8px;font-style:italic"><tr>
+        <td>
+          <input type="button" href="javascript:;" ng-click="doComment(choice)" ng-value="'discuss'" style="padding:0;border:none;background:none;text-decoration:underline;"></input>
+        </td>
+        <td style="text-align:right">
+          <input type="button" href="javascript:;" ng-if="choice[2]==creatorID" ng-click="editOption('candidates',$index, this)" ng-value="(choice[0]!==undefined)?'edit':'done'" style="padding:0;border:none;background:none;text-decoration:underline;"></input>
+          <span ng-if="choice[2] && choice[2]!==creatorID">user suggestion</span>
+        </td></tr>
+      </table>
     </td>
     </tr></table>
   </div>
@@ -37,10 +42,15 @@
       </td>
     </tr><tr ng-if="choice[2]">
     <td colspan=3>
-      <table class="maxwidth" style="font-size:8px;font-style:italic"><tr><td style="text-align:right">
-        <input type="button" href="javascript:;" ng-if="choice[2]==creatorID" ng-click="editOption('choices',$index, this)" ng-value="(choice[0]!==undefined)?'edit':'done'" style="padding:0;border:none;background:none;text-decoration:underline;"></input>
-        <span ng-if="choice[2] && choice[2]!==creatorID">user suggestion</span>
-      </td></tr></table>
+      <table class="maxwidth" style="font-size:8px;font-style:italic"><tr>
+        <td>
+          <input type="button" href="javascript:;" ng-click="doComment(choice)" ng-value="(state.data.discussions && state.data.discussions[choice[0]])?'discuss':'start discussion'" style="padding:0;border:none;background:none;text-decoration:underline;"></input>
+        </td>
+        <td style="text-align:right">
+          <input type="button" href="javascript:;" ng-if="choice[2]==creatorID" ng-click="editOption('choices',$index, this)" ng-value="(choice[0]!==undefined)?'edit':'done'" style="padding:0;border:none;background:none;text-decoration:underline;"></input>
+          <span ng-if="choice[2] && choice[2]!==creatorID">user suggestion</span>
+        </td></tr>
+      </table>
     </td>
     </tr></table>
   </div>
@@ -51,11 +61,19 @@
 <input type='button' style="width:100%" ng-if="canAddCandidate()" ng-click="addCandidate()" value='suggest another choice'></input>
 </td></tr>
 </table>
+<br><div id="response"></div><br>
 <input type='button' ng-click="submit()" class="submitbutton clearbutton maxwidth" id="sbmt" ng-if="state.data.votability!='closed'" style="font-size:2em" ng-value='(state.rank && state.rank.length)?"revise vote":"vote"'></input>
 <!--
 <br><input type="checkbox" name="emailnotify" value="notify" text="sadf"> receive e-mail notification if a new suggestion becomes significant</input><br>
 -->
-<br><div id="response"></div><br><br>
+
+<table ng-if="state.data.discussions" class="maxwidth">
+  <tr><th>discussions</th></tr>
+  <tr ng-repeat="disc in state.data.discussions"><td>
+    <a ng-href="state.data.discussions[disc].href">{{disc}}</a>
+  </td></tr>
+</table>
+<br><br>
 <table class="maxwidth" ng-if="state.id"><tr><td width=50%>
   <a id="reslink" ng-href="../result/{{state.id}}">see results</a><br>
 </td><td style="text-align:right" width=33%>

@@ -48,6 +48,11 @@
 -->
   </select><br>
 
+  <select id="SCOPE.state.data.userDiscussion" onchange="SCOPE.state.data.userDiscussion=this.value;SCOPE.$digest();">
+    <option value=""        >discussion enabled - users can discuss and debate suggestions</option>
+    <option value="disabled">discussion disabled - no discussion of suggestions</option>
+  </select><br>
+
 <!--
   <select id="jsoninsertoption" onchange="setStyle('display',this.value,['jsoninsert','jsoninsertbutton']);SCOPE.refresh();SCOPE.$digest();">
     <option value="none">hide JSON editor</option>
