@@ -20,7 +20,7 @@ var mvaganov = require('./views/mvaganov');
 var MemcachedStore = require('connect-memcached')(session);
 var gcloud = require('gcloud');
 var ds = gcloud.datastore({ projectId: config.get('GCLOUD_PROJECT') });
-
+var stringbonus = require('./views/stringbonus');
 
 var MUST_HAVE_VAR_GROUP = {};
 function MUST_HAVE_VAR(varname, varGroup, cb) {
@@ -1048,20 +1048,18 @@ function ensureTimeBetween(stringCode, actionName, timeMs, callback) {
 // make sure debates arent duplicated when a debate ID is supplied (as long as the debate exits, and was created by this same user!)
 app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
   var gid = ensureLoginGET(req, res); if(gid == null) { return; }
-  var cookies = req.headers.cookie.parseCookies(); // TODO mvaganov.parseCookies
+  console.log(mvaganov.stringify(stringbonus));
+  var cookies = stringbonus.parseCookies(req.headers.cookie);
   var dat = saferParse(cookies.debate);
   var scope = {dat:dat, updatedDebateAlready:false};
   var did = req.params.debateid;
   if(did == 'public') {did = undefined;}
   var MAX_IDENTIFIER_LENGTH = 32;
+  var linked_from = dat.linkedFrom;
   waterfall([
-    function validateDebate(callback) {
-      // log("------validate debate");
-      if(!dat) { return callback("missing debate");}
-      if(!dat.title) { return callback("missing debate title");}
-      if(!dat.data) { return callback("missing debate data");}
-      // TODO validate all elements using some clever data-driven approach, including the variables in data.
-
+    function validateSchema(callback) {
+      validationWalk(req,res, dat, validationMap_debate, callback);
+    }, function validateLogic(callback) {
       irv_validateCandidates([scope.dat.data.candidates, scope.dat.data.choices], function(err){
         if(err){ return callback(err); }
         callback(null);
@@ -1077,7 +1075,7 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
     }, function ensureOneMinuteBetweenVotes(callback) {
       // log("------ensure 1 minute:    edit"+scope.voter.id);
       const MIN_MS_BETWEEN_DEBATE_EDITS = 60 * 1000;
-      // console.log("edit voter "+scope.voter.name+" "+scope.voter.id+" "+scope.voter.email);
+      console.log("edit voter "+scope.voter.name+" "+scope.voter.id+" "+scope.voter.email);
       ensureTimeBetween("edit"+scope.voter.id, "edit your debate", MIN_MS_BETWEEN_DEBATE_EDITS, callback);
     }, function getDebate(callback) {
       // log("------get debate "+did);
@@ -1129,9 +1127,13 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
         });
       } else { callback(null); }
     }, function linkDiscussionToDebateIfNeeded(callback) {
-      // TODO if this debate is a discussion of an element from a linked debate ()
-      // if(!SCOPE.state.data.discussions) { SCOPE.state.data.discussions = {}; }
-      // SCOPE.state.data.discussions[commentData[0]] = {href:response.id};
+      // if this debate is a discussion of an element from a linked debate ()
+      // TODO make add to the discussions table of the linked-from event, after loading it.
+      // if(linked_from) {
+      //   if(!SCOPE.state.data.discussions) { SCOPE.state.data.discussions = {}; }
+      //   SCOPE.state.data.discussions[commentData[0]] = {href:response.id};
+      // }
+      callback(null);
     }, function finished(callback) {
       var resultObject = {id:scope.debate.id};
       // log("finished with "+JSON.stringify(resultObject));
@@ -1142,13 +1144,21 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
 });
 
 app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) {
-  var cookies = req.headers.cookie.parseCookies(); // TODO mvaganov.parseCookies
+  var cookies = stringbonus.parseCookies(req.headers.cookie);
   var dat = saferParse(cookies.rank);
   var scope = {dat:dat};
   if(dat.did != req.params.did) {
     return async_waterfall_error("ERROR D-id in URL ("+req.params.did+") does not match D-id in data ("+dat.did+")", req, res, null, scope); }
+
+  if(dat.dentry) {
+    scope.dentryID = dat.dentry;
+    dat.dentry = null; delete dat.dentry; // remove the debate entry from the vote. it's non-standard!
+  }
+
   waterfall([
-    function getVoter(callback) {
+    function validateSchema(callback) {
+      validationWalk(req,res, dat, validationMap_vote, callback);
+    }, function getVoter(callback) {
       refreshDBAuthIfNeeded(req,res, function(){
         GetVoter(req, res, function(err,voter){
           if(!voter) { return callback("redirect:"+getForcedLoginUrl(req)); }
@@ -1161,18 +1171,14 @@ app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) 
       // console.log("vote voter "+scope.voter.name+" "+scope.voter.id+" "+scope.voter.email);
       ensureTimeBetween("vote"+scope.voter.id, "vote", MIN_MS_BETWEEN_VOTES, callback);
     }, function getEntry(callback) { 
-      if(dat.dentry) {
-        var debate_entry_id = dat.did;
-        dat.dentry = null; delete dat.dentry; // remove the debate entry from the vote. it's non-standard!
-        GetDebateEntry(debate_entry_id, function(err, entity) {
-          scope.dentry=entity; callback(err);
-        });
-      } else { 
+      if(scope.dentryID) {
+        DS_read(T_DEBATE_ENTRY, scope.dentryID, function (err, entity) {scope.dentry=entity; callback(err); });
+      } else {
         GetDebateEntry(req.params.did, function(err, entity) { scope.dentry=entity; callback(err); });
       }
     }, function updateTheVote(callback) {
       if(scope.dentry.vot == 'closed') { return END(req,res,"voting closed."); }
-      log("UPDATING THE VOTE "+JSON.stringify(dat));
+      // log("UPDATING THE VOTE "+JSON.stringify(dat));
       scope.isVotex = (req.url.indexOf("votex") >= 0 && scope.voter.id == scope.dentry.owner);
       if(!scope.isVotex && dat.data.ranks) { return callback("ERROR only debate owners can submit multiple votes."); }
       if(dat.vid != scope.voter.id) { return callback("ERROR user submitting vote for someone other than themselves"); }
@@ -1180,7 +1186,7 @@ app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) 
     }, function addUserCandidatesIfNeeded(callback) {
       if(dat.data.addedCandidate) {
         var aList = scope.dat.data.addedCandidate;
-        log("adding candidate! "+aList);
+        // log("adding candidate! "+aList);
         waterfall([
           function getTheDebate(cb) {
             // get the debate
@@ -1253,7 +1259,7 @@ app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) 
         ], callback);
       } else { callback(null); }
     }, function finishedWithVoteSubmission(callback) {
-      log("VOTE IS ::::: "+JSON.stringify(scope.vote));
+      // log("VOTE IS ::::: "+JSON.stringify(scope.vote));
       res.json({id:scope.vote.id});
       DS_uncacheListBy(T_VOTE, {vid:scope.voter.id, 'did':dat.did}, 1, null, function(err){ 
       // DS_read(T_VOTE, dat.id, function(err, voteInDb){
@@ -1265,7 +1271,7 @@ app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) 
     }, function markLastVote(callback) {
       var lastTime = scope.dentry.lastvote;
       scope.dentry.lastvote = Date.now();
-      log("UPDATING THE DEBATE ENTRY: "+scope.dentry.lastvote+" vs "+lastTime);
+      // log("UPDATING THE DEBATE ENTRY: "+scope.dentry.lastvote+" vs "+lastTime);
       DS_update(T_DEBATE_ENTRY, scope.dentry.id, scope.dentry, function(err, entity){callback(null);});
     }
   ], function error(err, result){ async_waterfall_error(err, req, res, result, scope); });
@@ -1332,14 +1338,16 @@ schema[T_VOTE] = {
     'modified': t_NUM, // when the vote was cast most recently
     'data': t_JSON // choices and other data
 };
-
 ////////////////////////////////////////////////////////////////////////////////
-function validationWalk(req,res,obj, variable, validationMap, path, callback) {
+function validationWalk(req,res,obj,map,callback) {
+  return validationWalk_recur(req,res,obj,obj,map,[],callback);
+}
+function validationWalk_recur(req,res,obj, variable, validationMap, path, callback) {
   var scope = {};
   waterfall([
     function validationFunction(cb) {
       if(typeof validationMap === 'function') { return validationMap(path, variable, obj, cb); }
-      cb(null);
+      else { cb(null); }
     }, function validateSubObject(cb) {
       if(typeof validationMap === 'object') {
         if(typeof variable !== 'object') {
@@ -1357,7 +1365,7 @@ function validationWalk(req,res,obj, variable, validationMap, path, callback) {
             validator = validationMap['undefined'];
             if(!validator) { return cb("missing validator for "+path); }
           }
-          validationWalk(req,res,obj, variable[k], validator, alteredPath, function(err) {
+          validationWalk_recur(req,res,obj, variable[k], validator, alteredPath, function(err) {
             if(err) { return cb(err); }
             keyIndex++;
             if(keyIndex < keys.length) { 
@@ -1367,30 +1375,52 @@ function validationWalk(req,res,obj, variable, validationMap, path, callback) {
             return cb(null);
           });
         }
-      } else {
+        iterateAcrossKeys();
+      } else if(typeof validationMap !== 'function') {
         return cb("validation map should only be function or object. validation map at '"+path+"' is '"+validationMap+"'");
-      }
+      } else { return cb(null); }
     }, function checkRequired(cb) {
       if(typeof validationMap === 'object') {
         for(var k in validationMap) {
           if(validationMap[k] == v_required && !variable[k]) {
-            return v_required(path.contat(k), variable[k], obj, cb);
+            // console.log("required "+k);
+            return v_required(path.concat(k), variable[k], obj, cb);
           }
         }
       }
+      cb(null);
     }, function allChecksDone(cb) {
       callback(null);
     }], function error(err,result) { async_waterfall_error(err,req,res,result,scope); }
   );
 }
 function v_optional(varPath, variable, dat, cb) { return cb(null); }
-function v_required(varPath, variable, dat, cb) { if(!variable) { return cb("missing "+varPath); } return cb(null); }
+function v_required(varPath, variable, dat, cb) { if(!variable) { return cb("missing element: "+varPath); } return cb(null); }
 function v_invalid(varPath, variable, dat, cb) { cb("invalid data: "+varPath); }
-function v_string(varPath, variable, dat, cb) {
+/** @param alternates array or arrays, where the inner arrays are references to elements in the {@param dat} structure */
+function v_requiredOneOfThese(varPath, variable, dat, alternates, cb) {
+  if(!variable) {
+    var haveOther = false;
+    for(var alt=0;alt<alternates.length && !haveOther;++alt) {
+      var cursor = dat;
+      var i = 0;
+      while(cursor && i < alternates[alt].length) {
+        cursor = cursor[alternates[i]];
+        i++;
+      }
+      haveOther = (cursor && i == alternates[alt].length);
+    }
+    if(!haveOther) {
+      return cb("missing ["+varPath+"], or optionally, one of these: ["+alternates.join("], [")+"]")
+    }
+  }
+  return cb(null);
+}
+function v_required_string(varPath, variable, dat, cb) {
   if(typeof variable === 'string') return cb(null);
   cb("expected "+varPath+" to be a string instead of: "+JSON.stringify(variable));
 }
-function v_validateOneOf(varPath, variable, dat, required, validOptionList, errcb) {
+function v_oneOf(varPath, variable, dat, required, validOptionList, errcb) {
   if(required && !variable) { return errcb("missing "+varPath); }
   if(variable && validOptionList.indexOf(variable) < 0) {
     return errcb("invalid value for '"+varPath+"', value is '"+variable+"', expected one of: ["+validOptionList+"]");
@@ -1416,7 +1446,7 @@ var validationMap_debate = {
   id: v_optional,
   owner: v_required,
   dentry: v_optional,
-  title: v_string,
+  title: v_required_string,
   created: v_optional,
   modified: v_optional,
   category: v_optional, // TODO check if categories exist.
@@ -1426,12 +1456,12 @@ var validationMap_debate = {
     choices: v_optional, // TODO validate list, validate HTML in [i][1]
     addedCandidate: v_optional, // TODO validate list, validate HTML in [i][1]
     imgdisp: v_optional,
-    prompt: v_required, // TODO validate HTML
-    visibility: function visibility(path,v,d,ecb){validateOneOf(path,v,d,true, ['public','private','hidden','deleted'], ecb)},
-    votability: function votability(path,v,d,ecb){validateOneOf(path,v,d,false,['','anyone','closed','exclusive','secured'], ecb)},
-    candidateOrder: function corder(path,v,d,ecb){validateOneOf(path,v,d,false,['','fixed','random','result'], ecb)},
-    userSuggestion: function usrsug(path,v,d,ecb){validateOneOf(path,v,d,false,['','once','open'], ecb)},
-    userDiscussion: function usrdis(path,v,d,ecb){validateOneOf(path,v,d,false,['','disabled','open'], ecb)},
+    prompt: v_optional, // TODO validate HTML
+    visibility: function visibility(path,v,d,ecb){v_oneOf(path,v,d,true, ['public','private','hidden','deleted'], ecb)},
+    votability: function votability(path,v,d,ecb){v_oneOf(path,v,d,false,['','anyone','closed','exclusive','secured'], ecb)},
+    candidateOrder: function corder(path,v,d,ecb){v_oneOf(path,v,d,false,['','fixed','random','result'], ecb)},
+    userSuggestion: function usrsug(path,v,d,ecb){v_oneOf(path,v,d,false,['','once','open'], ecb)},
+    userDiscussion: function usrdis(path,v,d,ecb){v_oneOf(path,v,d,false,['','disabled','open'], ecb)},
     linkedFrom: function linkedFrom(varPath, variable, dat, errorcallback) {
       if(variable) {
         // TODO validate existing debate ID
@@ -1443,11 +1473,25 @@ var validationMap_debate = {
     }
   }
 };
-
+var validationMap_vote = {
+  'undefined': v_invalid,
+  did: v_required,
+  vid:v_required,
+  id: v_optional,
+  name: v_optional,
+  modified: v_optional,
+  created: v_optional,
+  data: {
+    'undefined': v_invalid,
+    rank: function rank(path,v,d,ecb){v_requiredOneOfThese(path,v,d,[["data","ranks"]],ecb)},
+    addedCandidate: v_optional,
+    ranks: function ranks(path,v,d,ecb){v_requiredOneOfThese(path,v,d,[["data","rank"]],ecb)}
+  }
+};
 ////////////////////////////////////////////////////////////////////////////////
 var validationMap_category = {
   'undefined': v_invalid,
-  title: v_string,
+  title: v_required_string,
   moderator:v_optionalEmailList, // who has rights to
   admin:v_optionalEmailList, // who can change moderator/admin rights
   banned:v_optionalEmailList, // who is not allowed in this category
@@ -1466,15 +1510,15 @@ var validationMap_category = {
   // arraytest:[1,2,3]
 };
 // validationMap_category['zubalubadubdub'] = validationMap_category.arraytest;
-console.log(JSON.stringify(validationMap_category, null, 2));
-console.log("------");
-var stringified = mvaganov.stringify(validationMap_category, null, 2);
-console.log(stringified);
-console.log("---------");
-var objected = mvaganov.parse(stringified);
-console.log("---------");
-console.log(JSON.stringify(objected, null, 2));
-console.log(mvaganov.stringify(objected, null, 2));
+// console.log(JSON.stringify(validationMap_category, null, 2));
+// console.log("------");
+// var stringified = mvaganov.stringify(validationMap_category, null, 2);
+// console.log(stringified);
+// console.log("---------");
+// var objected = mvaganov.parse(stringified);
+// console.log("---------");
+// console.log(JSON.stringify(objected, null, 2));
+// console.log(mvaganov.stringify(objected, null, 2));
 ////////////////////////////////////////////////////////////////////////////////
 
 var nonIndexFilters = {};

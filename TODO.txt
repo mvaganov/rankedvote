@@ -30,8 +30,8 @@ major features
 	X Identify a TIE very clearly in the results
 	- combine similar debates
 	- separate two debates
-	- validate debates, votes, and build a system to make other data structures more easily validate-able
-	
+	X validate debates, votes, and build a system to make other data structures more easily validate-able
+
 
 debate admin:
 	X do not allow a debate to be submitted if more than one choice has the same ID.

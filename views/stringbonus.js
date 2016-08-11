@@ -1,3 +1,7 @@
+// MIT license - Michael Vaganov, 2016
+(function(globals) {
+///////////////////////////////////////////////////////////////////////////////
+
 //add functionality to the String implementation...
 (function () {
   "use strict";
@@ -235,3 +239,13 @@ function separateTextAndHtml(text, out_htmlTags) {
   // console.log(str+" --trim-> "+trimmed);
   return trimmed;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+  if (typeof define !== 'undefined' && define.amd) { define([], function () { return parseCookies; }); // RequireJS
+  } else if (typeof module !== 'undefined' && module.exports) { 
+    module.exports.parseCookies = parseCookies; // CommonJS
+    module.exports.separateTextAndHtml = separateTextAndHtml; // CommonJS
+  } else { globals.parseCookies = parseCookies; // <script>
+    globals.separateTextAndHtml = separateTextAndHtml;
+  }
+})(this);
