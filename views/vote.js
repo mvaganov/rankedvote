@@ -1,5 +1,20 @@
 var SCOPE;
 
+var sendObject = function (obj, objName, whatToDoWhenFinished) {
+  console.log("sending "+objName+"\n"+JSON.stringify(obj));
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState == 4 && xhr.status == 200) {
+      whatToDoWhenFinished(xhr.responseText);
+      document.cookie = objName + "=";      // clear the data from the cookie once the data is properly sent.
+    }
+  };
+  xhr.open('post', '');
+  var submisison = JSON.stringify(obj);
+  document.cookie = objName + "=" + submisison;
+  xhr.send();
+}
+
 var simplifiedListOfListsToList = function(listOfLists) {
   var result = new Array(listOfLists.length);
   for(var i=0;i<listOfLists.length;++i){
@@ -20,47 +35,71 @@ var createNewCommentDebate = function (commentData) {
     "<br><br>from "+linkBack,
     owner: creatorID,
     data: {
-      visibility: 'private'
-    },
-    linkedFrom: SCOPE.state.id // when this is read on the server, the debate is changed, so a discussions element is added
-  };
-
-  console.log("need to create debate: "+JSON.stringify(newDiscussion,null,2));
-  // HTTP post the new debate
-  var xhr = new XMLHttpRequest();
-  xhr.onreadystatechange = function() {
-    // clear the data from the cookie once the data is properly sent.
-    if (xhr.readyState == 4 && xhr.status == 200) {
-      try{
-        var response = JSON.parse(xhr.responseText);
-        responsePulse('Discussion ID: '+response.id, '#0f0');
-      }catch(e){
-        responsePulse(xhr.responseText, '#f00');
-      }
-      var redirectHead = "redirect:";
-      if(xhr.responseText.startsWith(redirectHead)) {
-        window.location = xhr.responseText.substring(redirectHead.length);
-        return;
-      }
-      // add the discussions element locally
-      if(!SCOPE.state.data.discussions) { SCOPE.state.data.discussions = {}; }
-      SCOPE.state.data.discussions[commentData[0]] = {href:response.id};
-      document.cookie = "disc=";
+      visibility: 'private',
+      linkid: commentData[0],
+      linkedFrom: SCOPE.state.id // when this is read on the server, the debate is changed, so a discussions element is added
     }
   };
-  var submisison = JSON.stringify(newDiscussion);
-  console.log("to submit: "+submisison);
-  // document.cookie = "disc=" + submisison;
-  // xhr.open('post', relativePath);
-  // xhr.send();
+  console.log("need to create debate: "+JSON.stringify(newDiscussion,null,2));
+  sendObject(newDiscussion, 'newDiscussion', function (responseText){
+    try{
+      var response = JSON.parse(responseText);
+      responsePulse('Discussion ID: '+response.id, '#0f0');
+    }catch(e){
+      responsePulse(responseText, '#f00');
+    }
+    var redirectHead = "redirect:";
+    if(responseText.startsWith(redirectHead)) {
+      window.location = responseText.substring(redirectHead.length);
+      return;
+    }
+    // add the discussions element locally
+    if(!SCOPE.state.data.discussions) { SCOPE.state.data.discussions = {}; }
+    SCOPE.state.data.discussions[commentData[0]] = {href:response.id};
+    SCOPE.$digest();
+  });
+//   var submisison = JSON.stringify(newDiscussion);
+//   // HTTP post the new debate
+//   var xhr = new XMLHttpRequest();
+//   xhr.onreadystatechange = function() {
+//     // clear the data from the cookie once the data is properly sent.
+//     if (xhr.readyState == 4 && xhr.status == 200) {
+//       try{
+//         var response = JSON.parse(xhr.responseText);
+//         responsePulse('Discussion ID: '+response.id, '#0f0');
+//       }catch(e){
+//         responsePulse(xhr.responseText, '#f00');
+//       }
+//       var redirectHead = "redirect:";
+//       if(xhr.responseText.startsWith(redirectHead)) {
+//         window.location = xhr.responseText.substring(redirectHead.length);
+//         return;
+//       }
+//       // add the discussions element locally
+//       if(!SCOPE.state.data.discussions) { SCOPE.state.data.discussions = {}; }
+//       SCOPE.state.data.discussions[commentData[0]] = {href:response.id};
+//       SCOPE.$digest();
+//       document.cookie = "newdiscussion=";
+//     }
+//   };
+//   // console.log("POST TO '"+relativePath+"'");
+//   xhr.open('post', relativePath);
+
+// //  console.log("to submit: "+submisison);
+//   document.cookie = "newdiscussion=" + submisison;
+//   console.log("to submit: "+document.cookie);
+
+//   xhr.send();
 }
 
 var doComment = function(commentData) {
   // if this comment (by ID) has a discussion link
   if(SCOPE.state.data.discussions && SCOPE.state.data.discussions[commentData[0]]) {
     // go to that discussion
-    window.location = SCOPE.state.data.discussions[disc].href
+    console.log("going to discussion page");
+    window.location = SCOPE.state.data.discussions[disc].href;
   } else { // otherwise
+    console.log("create discussion page");
     createNewCommentDebate(commentData);
   }
 }
@@ -197,8 +236,10 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
     };
     $scope.editOption = function(listname, index) {
       component = $scope.state.data[listname][index];
-      var readyForUse = component[0] !== undefined;
-      if(!readyForUse) {
+      // when the list element has no [0] element (the choice ID), it can be edited
+      var currentlyEditing = component[0] === undefined;
+      if(currentlyEditing) {
+        // if the button was pressed while the element is being edited, and there is NO text
         if(!component[1] || !component[1].length) {
           $scope.state.data[listname].splice(index,1);
           if($scope.state.data.addedCandidate) {
@@ -206,13 +247,22 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
               if($scope.state.data.addedCandidate[i][2]==creatorID) { $scope.state.data.addedCandidate.splice(i,1); }
             }
           }
-        } else {
+        } else { // if there is text
+          // create an ID value based on the content
           var idText = candidateNameFrom(component[1]);
           // log("NEW ID: \'"+idText+"\'");
+          // set the element as not being currently edited
           component[0] = idText;
         }
         SCOPE.opts.draggable = ".choice"; // allow all items to be dragged
+        // if the component text has changed
+        if($scope.oldComponentText && $scope.oldComponentText != component[1]) {
+          // tell the server
+
+        }
+        $scope.oldComponentText = undefined;
       } else {
+        $scope.oldComponentText = component[1];
         component[0] = undefined;
         SCOPE.opts.draggable = ".stopDrag"; // prevent items from being dragged
       }
@@ -343,30 +393,44 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
 
       // TODO submit $scope.state with this user ID
       // send the data in the HTTP headers as a cookie
-      var xhr = new XMLHttpRequest();
-      xhr.onreadystatechange = function() {
-        // clear the data from the cookie once the data is properly sent.
-        if (xhr.readyState == 4 && xhr.status == 200) {
-          // hide vote button
-          // create link to results
-          try{
-            var response = JSON.parse(xhr.responseText);
-            responsePulse('Vote receipt number: '+response.id, '#0f0');
-          }catch(e){
-            var redirectHead = "redirect:";
-            if(xhr.responseText.startsWith(redirectHead)) {
-              window.location = xhr.responseText.substring(redirectHead.length);
-              return;
-            }
-            responsePulse(xhr.responseText, '#f00');
+      sendObject(submissionState, 'rank', function (responseText){
+        try{
+          var response = JSON.parse(responseText);
+          responsePulse('Vote receipt number: '+response.id, '#0f0');
+        }catch(e){
+          var redirectHead = "redirect:";
+          if(responseText.startsWith(redirectHead)) {
+            window.location = responseText.substring(redirectHead.length);
+            return;
           }
-          document.cookie = "rank=";
+          responsePulse(responseText, '#f00');
         }
-      };
-      xhr.open('post', '');
-      var submisison = JSON.stringify(submissionState);
-      document.cookie = "rank=" + submisison;
-      xhr.send();
+      });
+
+      // var xhr = new XMLHttpRequest();
+      // xhr.onreadystatechange = function() {
+      //   // clear the data from the cookie once the data is properly sent.
+      //   if (xhr.readyState == 4 && xhr.status == 200) {
+      //     // hide vote button
+      //     // create link to results
+      //     try{
+      //       var response = JSON.parse(xhr.responseText);
+      //       responsePulse('Vote receipt number: '+response.id, '#0f0');
+      //     }catch(e){
+      //       var redirectHead = "redirect:";
+      //       if(xhr.responseText.startsWith(redirectHead)) {
+      //         window.location = xhr.responseText.substring(redirectHead.length);
+      //         return;
+      //       }
+      //       responsePulse(xhr.responseText, '#f00');
+      //     }
+      //     document.cookie = "rank=";
+      //   }
+      // };
+      // xhr.open('post', '');
+      // var submisison = JSON.stringify(submissionState);
+      // document.cookie = "rank=" + submisison;
+      // xhr.send();
     }
     if($scope.state.data.candidates.length > 0 && $scope.state.data.votability!='closed' && !$scope.state.rank){
       setTimeout(function(){

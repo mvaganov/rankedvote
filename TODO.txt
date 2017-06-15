@@ -24,14 +24,21 @@ major features
 		- flag debate as inappropriate - will hide content from that user, mark it for review, and be okayed or removed by a policing admin
 		- flag suggestion as inappropriate, which can be changed by the police or the debate owner
 	- special user flags
-		- admins, who can pretend to be other voters
-		- police, who can access a special judgement page, to identify debates, suggestions, and users, as appropriate or not (which will allow hide/deleteing content)
+		X admins, who can pretend to be other voters
+		- police, who can
+			- access a special judgement page, to identify
+				- debates
+				- suggestions
+				- users
+			- as appropriate or not (which will allow hide/deleteing content)
 	- put user suggestion in cookie, so it comes back up if there is a problem with submission.
 	X Identify a TIE very clearly in the results
-	- combine similar debates
-	- separate two debates
+	- flag debate as similar to anotherone
+		- combine similar debates with admin acceptance
 	X validate debates, votes, and build a system to make other data structures more easily validate-able
-
+	- categories for debates, in a hierarchy
+	- user discussions, which are actually new debates
+	- store multiple entries in the cookies, so that saved progress for multiple debates/votes/suggestions/discussions can be stored
 
 debate admin:
 	X do not allow a debate to be submitted if more than one choice has the same ID.

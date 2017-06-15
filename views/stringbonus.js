@@ -61,26 +61,40 @@
       return true;
     }
   }
+  if (typeof String.prototype.isAt !== 'function') {
+    String.prototype.isAt = String.prototype.hasAt;
+  }
   if (typeof String.prototype.trimTokens !== 'function') {
     String.prototype.trimTokens = function (tokens) {
+      var start = 0, end = this.length;
+      var foundOne = false;
       // from front
-      for(var i=0;i<tokens.length;++i) {
-        if(this.hasAt(tokens[i], 0)) {
-          console.log("@BEG "+this);
-          this.splice(0,tokens[i].length);
-          i=0;
+      do{
+        foundOne = false;
+        for(var i=0;i<tokens.length;++i) {
+          if(this.hasAt(tokens[i], start)) {
+            //console.log("@BEG "+this);
+            //this.splice(0,tokens[i].length);
+            //i=0;
+            start += tokens[i].length;
+            foundOne = true;
+          }
         }
-      }
+      }while(foundOne);
       // from back
-      for(var i=0;i<tokens.length;++i) {
-        var index = this.length-tokens[i].length;
-        if(this.hasAt(tokens[i], index)) {
-          console.log("@END "+this);
-          this.splice(index,tokens[i].length);
-          i=0;
+      do{
+        foundOne = false;
+        for(var i=0;i<tokens.length;++i) {
+          if(this.hasAt(tokens[i], end-tokens[i].length)) {
+            // console.log("@END "+this);
+            // this.splice(index,tokens[i].length);
+            // i=0;
+            end -= tokens[i].length;
+            foundOne = true;
+          }
         }
-      }
-      return this;
+      }while(foundOne);
+      return this.substring(start,end);
     }
   }
   if (typeof String.prototype.splitByOneOfThese !== 'function') {
@@ -169,10 +183,10 @@
       var table = {};
       for(var i = 0; i < entries.length; ++i) {
         var pair = entries[i].splitByOneOfThese(listOfAssignmentDelimeters, 1);
-        if(pair.length > 1) {
-          table[pair[0].trim()] = pair[1].trim();
-        } else {
-          table[pair[0].trim()] = null;
+        var name = pair[0].trim();
+        var value = (pair.length > 1)?pair[1].trim():undefined;
+        if (!table[name] || value && value.length > 0) {
+          table[name] = value;
         }
       }
       return table;

@@ -22,7 +22,9 @@
     <td colspan=3>
       <table class="maxwidth" style="font-size:8px;font-style:italic"><tr>
         <td>
+        <!--
           <input type="button" href="javascript:;" ng-click="doComment(choice)" ng-value="'discuss'" style="padding:0;border:none;background:none;text-decoration:underline;"></input>
+        -->
         </td>
         <td style="text-align:right">
           <input type="button" href="javascript:;" ng-if="choice[2]==creatorID" ng-click="editOption('candidates',$index, this)" ng-value="(choice[0]!==undefined)?'edit':'done'" style="padding:0;border:none;background:none;text-decoration:underline;"></input>
@@ -44,7 +46,9 @@
     <td colspan=3>
       <table class="maxwidth" style="font-size:8px;font-style:italic"><tr>
         <td>
+        <!--
           <input type="button" href="javascript:;" ng-click="doComment(choice)" ng-value="(state.data.discussions && state.data.discussions[choice[0]])?'discuss':'start discussion'" style="padding:0;border:none;background:none;text-decoration:underline;"></input>
+        -->
         </td>
         <td style="text-align:right">
           <input type="button" href="javascript:;" ng-if="choice[2]==creatorID" ng-click="editOption('choices',$index, this)" ng-value="(choice[0]!==undefined)?'edit':'done'" style="padding:0;border:none;background:none;text-decoration:underline;"></input>

@@ -150,7 +150,7 @@ angular.module('vote', ['ng-sortable', 'ngSanitize'])
       xhr.open('post', '');
       var submisison = JSON.stringify(submissionState);
       document.cookie = "debate=" + submisison;
-      // console.log("sending "+submisison);
+      console.log("sending "+submisison);
       xhr.send();
     };
   }]);

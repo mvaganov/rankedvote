@@ -383,8 +383,8 @@ function isPartOfUnambiguousString(str, i) {
 	var c = str.charCodeAt(0);
 	return ((c >= 'a'.charCodeAt(0) && c <= 'z'.charCodeAt(0))
 		 || (c >= 'A'.charCodeAt(0) && c <= 'Z'.charCodeAt(0))
-		 || (c >= '0'.charCodeAt(0) && c <= '9'.charCodeAt(0)) && i != 0
-		 || str == "_");
+		 || (c >= '0'.charCodeAt(0) && c <= '9'.charCodeAt(0) && i != 0)
+		 || str == "_" || str == "$");
 }
 
 function isUnambiguousString(str) {
@@ -422,7 +422,7 @@ function findWithAttr(array, attr, value) {
 
 function couldBeReferenced(obj) {
 	var t = typeof obj;
-	return t === 'object' || (t === 'string' && t.length >= 16);
+	return t === 'object' || t === 'function' || (t === 'string' && t.length >= 16);
 }
 
 // recursive reimplementation of JSON.stringify
@@ -438,12 +438,12 @@ var stringifyJSON = function(obj, filter, indentSize, path, objectEntries) {
         if(i > 0) { refPath += ","; }
         refPath += unambiguousString(p[i]);
       }
-      var refOut = "$["+refPath+"]";
+      var refOut = __OBJ_MODEL_REF+"["+refPath+"]";
       return refOut;
     }
     objectEntries.push([obj,path.slice()]);
   }
-  if (obj === null) { return "null"; }
+  if (obj === null) { return 'null'; }
   if (obj === undefined) { return 'undefined'; }
   if (obj.constructor === Function) { return obj.toString(); }
   if (obj.constructor === String) { return unambiguousString(obj); }
@@ -456,7 +456,7 @@ var stringifyJSON = function(obj, filter, indentSize, path, objectEntries) {
       return '[' + partialJSON.join(",") + ']';
     } else { return '[]'; }
   }
-  if (obj.constructor === Object) {
+  if (typeof obj === 'object') {
     var keys = Object.keys(obj);
     if (keys.length) {
       var useNewline = (indentSize > 0 && keys.length > 1)?'\n':'';
@@ -469,10 +469,9 @@ var stringifyJSON = function(obj, filter, indentSize, path, objectEntries) {
         if(elementsPrinted > 0) { partialJSON += ',' + useNewline; }
         if(useNewline && useNewline.length) { for(var ind=0;ind<(path.length+1)*indentSize;++ind){ partialJSON += ' '; } }
         partialJSON += unambiguousString(key) + ":";
-        if(obj[key].constructor === Function) { partialJSON += 'function' } else
-        {
+        // if(obj[key].constructor === Function) { partialJSON += 'function(){}' } else {
         	partialJSON += stringifyJSON(obj[key], filter, indentSize, path.concat(key), objectEntries); // recursion
-    	}
+    	// }
         elementsPrinted++;
       }
       if(elementsPrinted > 0) {
@@ -488,31 +487,20 @@ var stringifyJSON = function(obj, filter, indentSize, path, objectEntries) {
 
 var WHITESPACE = " \n\t\r";
 
-// var eatWhitespace = function (text, scope) {
-// 	var i = scope.index;
-// 	scope.rowcol[1] = scope.index;
-// 	while(i < text.length && WHITEPSPACE.indexOf(text[i]) < 0) { 
-// 		if(text[i] == '\n') { scope.rowcol[0]++; scope.rowcol[1] = i+1; }
-// 		++i;
-// 	}
-// 	return i;
-// }
-
 function ParseScope() {}
 ParseScope.prototype.init = function(text) {
 	this.index = 0;
 	this.text = text;
-	this.rowcol = [1,0];
+	this.cursorPos = {line:1, initcol:0};
 };
-ParseScope.prototype.err = function(e) {
-	if(!this.error) { this.error = []; }
-	this.error.push(this.rowcol[0]+","+(this.index-this.rowcol[1])+": "+e); };
+ParseScope.prototype.cursorPosStr = function() { return this.cursorPos.line+","+(this.index-this.cursorPos.initcol); }
+ParseScope.prototype.err = function(e) { if(!this.error) { this.error = []; } this.error.push(this.cursorPosStr()+": "+e); };
 ParseScope.prototype.thisChar = function() { return this.text[this.index]; };
 ParseScope.prototype.eatWhitespace = function (endAllowed) {
-	this.rowcol[1] = this.index;
-	while(this.index < this.text.length && WHITESPACE.indexOf(this.text[this.index]) >= 0) { 
-		if(this.text[this.index] == '\n') { this.rowcol[0]++; this.rowcol[1] = this.index+1; }
+	var c;
+	while(this.index < this.text.length && WHITESPACE.indexOf( (c = this.text[this.index]) ) >= 0) { 
 		++this.index;
+		if(c == '\n') { this.cursorPos.line++; this.cursorPos.initcol = this.index; }
 	}
 	if(!endAllowed && this.index >= this.text.length) { this.err("unexpected end of script"); }
 	return this.index;
@@ -526,19 +514,24 @@ function isNumeric(ch) {
 	return c >= '0'.charCodeAt(0) && c <= '9'.charCodeAt(0);
 }
 var __FUNCTION_TOKEN = "function";
+var __OBJ_MODEL_REF = '*'
+ParseScope.prototype.tokenIsHere = function (token) {
+	//return this.text.substring(this.index, this.index+token.length) == token;
+	return this.text.isAt(token, this.index); // requires stringbonus.js
+};
 ParseScope.prototype.parse = function() {
 	this.eatWhitespace();if(this.error){return}
 	var c = this.thisChar();
-	// console.log("--> ["+this.index+"] \'"+c+"\'");
+	// console.log("--> ["+this.cursorPosStr()+"] \'"+c+"\'");
 	       if(c == '[') {
 		theResult = this.parseArray();
 	} else if(c == '{') {
 		theResult = this.parseTable();
-	} else if(c == '$') {
+	} else if(c == __OBJ_MODEL_REF) {
 		theResult = this.parseReference();
 	} else if(c == '\'' || c == '\"'){
 		theResult = this.parseStringLiteral();
-	} else if(c == 'f' && this.text.substring(this.index, this.index+__FUNCTION_TOKEN.length) == __FUNCTION_TOKEN) {
+	} else if(c == 'f' && this.tokenIsHere(__FUNCTION_TOKEN)) {
 		theResult = this.parseFunction();
 	} else if (validTokenStart(c)) {
 		theResult = this.parseSingleToken();
@@ -557,16 +550,74 @@ ParseScope.prototype.parseNumber = function() {
 	}
 	return parseFloat(this.text.substring(start, this.index));
 };
-ParseScope.prototype.parseFunction = function() { // TODO parse functions
+ParseScope.prototype.parseFunction = function() {
 // console.log("parseFunction");
 	var c = this.thisChar();
 	if(c == 'f' && this.text.substring(this.index, this.index+__FUNCTION_TOKEN.length) == __FUNCTION_TOKEN) {
 		this.index += __FUNCTION_TOKEN.length;
-		return function(){};
+		this.eatWhitespace();
+		// read the function name (if there is one)
+		c = this.thisChar();
+		var functionName = null;
+		if(c != '(') {
+			functionName = this.parseSingleToken();
+		}
+		// read the function parameters, starting with the opening parenthesis and ending with the end parenthesis
+		var functionArgs = this.parseArray();
+		this.eatWhitespace();
+		// read the open curly-braces, and all the rest inside of the function...
+		var parsedCode = this.parseContainers();
+
+		// TODO parse JavaScript... lol.
+		var completeFunction = __FUNCTION_TOKEN+" "+(functionName?functionName:"")+"("+functionArgs+")"+this.text.substring(parsedCode.start,parsedCode.end);
+		// console.log("--name: "+functionName);
+		// console.log("--args: "+functionArgs);
+		// console.log("--code: "+completeFunction);
+
+		// TODO make structure that can execute the following: +, -, *, /, %, *[dereference], var, function, if, (falsey/truthy), else, while, for, null, undefined, return, true, false, typeof
+
+		var resultingFunction; eval("resultingFunction="+completeFunction); return resultingFunction;
+
+		// return function(){};
 	} else {
-		this.err("expected token 'function'");
+		this.err("expected token \'"+__FUNCTION_TOKEN+"\'");
 	}
 };
+ParseScope.prototype.parseContainers = function() {
+	var c = this.thisChar();
+	if(!this.depth){this.depth=0;}
+// var indent="";
+// for(var i=0;i<this.depth;++i){indent+="  ";}
+// console.log(indent+"!!!!! "+c+" "+this.cursorPosStr()+"   \'"+this.text.substring(this.cursorPos.initcol, Math.min(this.index+2,this.text.length))+"...\'" );
+// this.depth++;
+	var containerEnd = arrayContainerTokens[c];
+	if(!containerEnd) { this.err("bad container start \'"+c+"\'"); return; }
+	var scope = {start:this.index, end:-1, open:c, next:[]}
+	this.index++; c = this.thisChar();
+	while(this.index < this.text.length && c != containerEnd) {
+		if(c == '\n') {
+			this.index++;
+			this.cursorPos.line++; this.cursorPos.initcol = this.index;
+		} else if(c == '\"' || c == '\'') {
+			scope.next.push(this.parseStringLiteral());
+		} else {
+			var anotherContainer = arrayContainerTokens[c];
+			if(anotherContainer){
+				scope.next.push(this.parseContainers());
+				if(this.error) { return; }
+			} else {
+				this.index++;
+			}
+		}
+		c = this.thisChar();
+	}
+// this.depth--;
+// console.log(indent+"!end! "+c+" "+this.cursorPosStr()+"   \'"+this.text.substring(this.cursorPos.initcol, Math.min(this.index+2,this.text.length))+"...\'" );
+	if(this.index >= this.text.length) { this.err("unexpected end of file. was looking for '"+containerEnd+"'"); }
+	this.index++;
+	scope.end = this.index;
+	return scope;
+}
 ParseScope.prototype.parseSingleToken = function() {
 // console.log("parseToken");
 	var c, start = this.index;
@@ -579,17 +630,27 @@ ParseScope.prototype.parseSingleToken = function() {
 	} while(true);
 	return this.text.substring(start, this.index);
 };
+var arrayContainerTokens = {
+	'[':']',
+	'(':')',
+	'{':'}'
+}
 ParseScope.prototype.parseArray = function() {
 // console.log("parseArray");
+	var c = this.thisChar();
+	var endDelimeter = arrayContainerTokens[c];
 	var theResult = [];
 	if(!this.source){this.source = theResult;}
 	this.index++;
 	this.eatWhitespace();if(this.error){return}
 	while(true) {
-		var nextChar = this.thisChar();
-		if(nextChar == '}') { this.err("previous table ended before array"); return; }
-		else if(nextChar == ']') { ++this.index; break; }
-		else if(nextChar == ',') { ++this.index; continue; } // ignore commas, which are optional
+		c = this.thisChar();
+		     if(c == endDelimeter) { ++this.index; break; }
+		else if(c == ']') { this.err("previous array ended before array"); return; }
+		else if(c == ')') { this.err("previous expression ended before array"); return; }
+		else if(c == '}') { this.err("previous table ended before array"); return; }
+		else if(c == '>') { this.err("previous typecast ended before array"); return; }
+		else if(c == ',') { ++this.index; continue; } // ignore commas, which are optional
 		// parseJSON from this point, add it to the array
 		var element = this.parse(); if(this.error){return;}
 		theResult.push(element);
@@ -661,7 +722,7 @@ ParseScope.prototype.parseReference = function() {
 	if(c != '[') { this.err("value reference requires array, not "+c); return; }
 	var ref = this.parseArray(), cursor = this.source, refIndex = 0;
 	while(cursor && refIndex < ref.length) { cursor = cursor[ref[refIndex]]; ++refIndex; }
-	if(!cursor) { this.err("could not reference $["+ref+"], failed at ["+(refIndex-1)+"] \'"+ref[refIndex-1]+"\'"); return; }
+	if(!cursor) { this.err("could not reference "+__OBJ_MODEL_REF+"["+ref+"], failed at ["+(refIndex-1)+"] \'"+ref[refIndex-1]+"\'"); return; }
 	return cursor;
 };
 

@@ -22,6 +22,14 @@ var gcloud = require('gcloud');
 var ds = gcloud.datastore({ projectId: config.get('GCLOUD_PROJECT') });
 var stringbonus = require('./views/stringbonus');
 
+var redirectTable = {
+    // redirects to make voting easy for CS1.2016-17.1
+//  '/b': '/vote/5714772351778816',
+//  '/c': '/vote/5718016125829120',
+//  '/d': '/vote/5631943370604544',
+//  '/g': '/vote/5704837555552256'
+};
+
 var MUST_HAVE_VAR_GROUP = {};
 function MUST_HAVE_VAR(varname, varGroup, cb) {
   if(!cb) { cb = function(err) { if(err) { console.log("ERROR MUST_HAVE_VAR: "+JSON.stringify(err)); } } }
@@ -232,7 +240,7 @@ function GetVoter_Filter(err, voterEntry, cb, getTrueVoter) {
   return cb(err, voterEntry);
 }
 
-/** 
+/**
  * @param cb {function(err, voterRecord)}
  * @param FORCED if true, will force a database call
  */
@@ -704,7 +712,7 @@ app.post('/admin/:vid', function update (req, res, next) {
         GetVoter(req, res, function(err,voter){
           if(!voter) { return callback("redirect:"+getForcedLoginUrl(req)); } scope.voter=voter; callback(err);
         }, false, true);
-      });      
+      });
     }, function assertAdmin(callback) {
       if(scope.voter.data.admin) { callback(null); } else { callback("missing admin rights"); }
     }, function getVoterToFilterAs(callback) {
@@ -736,7 +744,7 @@ function checkAndFixMultipleDebateEntries(req, res, listOfEntries, callback) {
   if(listOfEntries) {
     // log("checking!!!!"+listOfEntries.length);
     for(var i=0;i<listOfEntries.length;++i) {
-      var commonEntries = listOfEntries.filter(function(item, indx, arr){ 
+      var commonEntries = listOfEntries.filter(function(item, indx, arr){
         // log(item.did+" == "+listOfEntries[i].did);
         return(item.did == listOfEntries[i].did);});
       if(commonEntries && commonEntries.length > 1) { // if we have some debateEntries poiting at the same Debate
@@ -798,7 +806,7 @@ app.get('/votes', function(req, res, next) {
   var scope = {};
   waterfall([
     function getVoter(callback) { GetVoter(req, res, function(err,voter){scope.voter=voter;callback(err);});
-    }, function getVotes(callback) { 
+    }, function getVotes(callback) {
       if(scope.voter) {
         DS_listBy(T_VOTE, {vid:scope.voter.id,SORTBY:["modified D"]},50,req.query.pageToken,
         function(err, votes, pageToken){scope.votes={votes:votes,pageToken:pageToken}; callback(err);});
@@ -819,11 +827,14 @@ app.get(['/vote/:did','/votex/:did','/vote'], function(req, res, next) {
   var scope = {};
   waterfall([
     function getVoter(callback) { GetVoter(req, res, function(err,voter){scope.voter=voter;callback(err);});
-    }, function getDebate(callback) { 
+    }, function getDebate(callback) {
       if(req.params.did) {
         DS_read(T_DEBATE, req.params.did, function(err, debate){
+          if(!debate) {
+            console.log("oh no, somehow the debate was returned currectly as null... "+req.url);
+          }
           // log("vot:"+debate.data.votability);
-          if(debate.data.visibility != 'deleted' && debate.data.visibility != 'hidden') { scope.debate=debate; }
+          if(debate && debate.data.visibility != 'deleted' && debate.data.visibility != 'hidden') { scope.debate=debate; }
           callback(null);
         });
       } else {scope.debate=null; callback(null);}
@@ -850,13 +861,13 @@ app.get(['/vote/:did','/votex/:did','/vote'], function(req, res, next) {
       } else if (scope.debate.data.candidateOrder == 'fixed') {
         // do nothing for fixed order. leave order the way it is.
       }
-      callback(null);        
+      callback(null);
     }, function getVote(callback) {
       if(scope.voter) {
         scope.isVotex = false;
         if(scope.debate) {
           scope.isVotex = (req.url.indexOf("votex") >= 0 && scope.voter.id == scope.debate.owner);
-          DS_listBy(T_VOTE, {vid:scope.voter.id, 'did':scope.debate.id}, 1, null, function(err, votes, pageToken){ 
+          DS_listBy(T_VOTE, {vid:scope.voter.id, 'did':scope.debate.id}, 1, null, function(err, votes, pageToken){
             if(votes) { scope.vote = votes[0]; }
             if(!scope.vote && scope.debate && scope.debate.data.votability == 'closed') { return res.redirect('/result/'+req.params.did); }
              callback(null); });
@@ -932,7 +943,7 @@ function calculateResults(req, res, scope, whenFinished) {
           title: scope.debate.title,
           prompt: scope.debate.data.prompt,
           result: scope.calcresults,
-          info: [], 
+          info: [],
         };
       } else {
         scope.state = {
@@ -940,7 +951,7 @@ function calculateResults(req, res, scope, whenFinished) {
           title: "Error: could not find debate "+scope.dentry.did,
           prompt: "",
           result: [],
-          info: [], 
+          info: [],
         };
       }
       if(scope.voterfraud) { scope.state.voterfraud = true; } // TODO send username
@@ -953,10 +964,10 @@ function calculateResults(req, res, scope, whenFinished) {
         if(typeof cand === 'string') {
           var list = candidateSource;
           var foundData = false;
-          for(var i=0;i<list.length;++i) { 
-            if(list[i][0] == cand) { 
+          for(var i=0;i<list.length;++i) {
+            if(list[i][0] == cand) {
               foundData = true;
-              scope.state.info.push(list[i]); break; 
+              scope.state.info.push(list[i]); break;
             }
           }
           if(!foundData) { scope.state.info.push([cand, cand+"<br>option removed"]); }
@@ -964,7 +975,7 @@ function calculateResults(req, res, scope, whenFinished) {
           var allText = ((cand.length>2)?(cand.length+" way "):"")+"TIE<br>";
           var additions = 0;
           var list = candidateSource;
-          for(var i=0;i<list.length;++i) { 
+          for(var i=0;i<list.length;++i) {
             if(cand.indexOf(list[i][0]) >= 0) {
               if(additions > 0) { allText += "<br>";}
               allText += list[i][1];
@@ -976,8 +987,8 @@ function calculateResults(req, res, scope, whenFinished) {
       }
       if(scope.debate) {
         log("-----------------UPDATING RESULTS");
-        DS_update(T_DEBATE_RESULT, scope.dentry.result, 
-          {did:scope.dentry.did,data:scope.state}, function (err, resultingData){ 
+        DS_update(T_DEBATE_RESULT, scope.dentry.result,
+          {did:scope.dentry.did,data:scope.state}, function (err, resultingData){
             scope.debate_result=resultingData; callback(null);
           });
       } else {callback(null);}
@@ -1045,45 +1056,46 @@ function ensureTimeBetween(stringCode, actionName, timeMs, callback) {
   });
 }
 
-// make sure debates arent duplicated when a debate ID is supplied (as long as the debate exits, and was created by this same user!)
-app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
-  var gid = ensureLoginGET(req, res); if(gid == null) { return; }
-  console.log(mvaganov.stringify(stringbonus));
-  var cookies = stringbonus.parseCookies(req.headers.cookie);
-  var dat = saferParse(cookies.debate);
-  var scope = {dat:dat, updatedDebateAlready:false};
-  var did = req.params.debateid;
+function post_addOrEditDebate(req,res,debateData, debateid, scope, finishedCallback) {
+  log("post_addOrEditDebate");
+  //var scope = {dat:debate, updatedDebateAlready:false};
+  scope.dat = debateData; scope.updatedDebateAlready = false;
+  var did = debateid;
   if(did == 'public') {did = undefined;}
   var MAX_IDENTIFIER_LENGTH = 32;
-  var linked_from = dat.linkedFrom;
   waterfall([
     function validateSchema(callback) {
-      validationWalk(req,res, dat, validationMap_debate, callback);
+      console.log("------validating ["+req.headers.cookie+"]");//mvaganov.stringify(scope.dat));
+      validationWalk(req,res, scope.dat, validationMap_debate, callback);
     }, function validateLogic(callback) {
+      console.log("------validate candidates");
       irv_validateCandidates([scope.dat.data.candidates, scope.dat.data.choices], function(err){
         if(err){ return callback(err); }
         callback(null);
       });
     }, function getVoter(callback) {
-      // log("------get voter");
+      if(scope.dat.data.linkedFrom) {
+        END(req,res,"linkedFrom happening...");
+      }
+      log("------get voter");
       refreshDBAuthIfNeeded(req,res, function(){
         GetVoter(req, res, function(err,voter){scope.voter=voter;callback(err);});
       });
-    }, function ensureEditsAreaAllowed(callback) {
-      if(dat.data.visibility == 'public' && !Voter_CanPostPublic(scope.voter)) { return callback("user not allowed to post publicly"); }
+    }, function ensureEditsAreAllowed(callback) {
+      if(scope.dat.data.visibility == 'public' && !Voter_CanPostPublic(scope.voter)) { return callback("user not allowed to post publicly"); }
       callback(null);
-    }, function ensureOneMinuteBetweenVotes(callback) {
-      // log("------ensure 1 minute:    edit"+scope.voter.id);
-      const MIN_MS_BETWEEN_DEBATE_EDITS = 60 * 1000;
+    }, function ensureOneMinuteBetweenDebateEdits(callback) {
+      log("------ensure 1 minute:    edit"+scope.voter.id);
+      const MIN_MS_BETWEEN_DEBATE_EDITS = 30 * 1000;
       console.log("edit voter "+scope.voter.name+" "+scope.voter.id+" "+scope.voter.email);
       ensureTimeBetween("edit"+scope.voter.id, "edit your debate", MIN_MS_BETWEEN_DEBATE_EDITS, callback);
     }, function getDebate(callback) {
-      // log("------get debate "+did);
+      log("------get debate "+did);
       if(did) { // updating existing debate
         DS_read(T_DEBATE, did, function(err, debate){scope.debate=debate;callback(null);});
       } else {scope.debate=null; callback(null);} // creating new debate
     }, function digestCookiesIntoDebate(callback) {
-      // log("------digest cookies for "+scope.dat.owner);
+      log("------digest cookies for "+scope.dat.owner);
       if(!scope.dat) { return callback("ERROR missing debate cookie "+JSON.stringify(cookies)); }
       if(scope.dat.owner) { scope.dat.owner = scope.dat.owner.toString(); }
       if(scope.dat.id) { scope.dat.id = scope.dat.id.toString();
@@ -1095,7 +1107,7 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
       }
       callback(null);
     }, function createDebateIfMissing(callback) {
-      // log("------create debate if missing "+(scope.debate?"(already got it)":": NEED IT!"));
+      log("------create debate if missing "+(scope.debate?"(already got it)":": NEED IT!"));
       if(!scope.debate) {// if there is no debate in the database yet, make one! It's expected to be there from this point on!
         return DS_update(T_DEBATE, undefined, scope.dat, function (err, debate) {
           scope.updatedDebateAlready = true;
@@ -1104,16 +1116,16 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
       } else if(scope.debate.id != scope.dat.id) { callback("ERROR debate ID mismatch in cookie");
       } else { callback(null); }
     }, function getDebateEntry(callback) {
-      // log("------get debate entry      for debate "+scope.debate.id);
+      log("------get debate entry      for debate "+scope.debate.id);
       GetDebateEntry(scope.debate, function(err, data){scope.dentryEntity=data; callback(err);});
     }, function updateDebateIfNeeded(callback) {
-      // log("updated debate if needed (already?) "+scope.updatedDebateAlready);
+      log("updated debate if needed (already?) "+scope.updatedDebateAlready);
       if(!scope.updatedDebateAlready || scope.debate.dentry != scope.dat.dentry) {
         scope.dat.dentry = scope.dentryEntity.id;
         DS_update(T_DEBATE, scope.dat.id, scope.dat, function (err, debate) { scope.debate=debate; callback(err); });
       } else { callback(null); }
     }, function updateDebateEntryTitleIfNeeded(callback) {
-      // log("update debate entry title if needed "+scope.dentryEntity.id);
+      log("update debate entry title if needed "+scope.dentryEntity.id);
       if(scope.debate.title != scope.dentryEntity.name
       || scope.debate.data.visibility != scope.dentryEntity.vis
       || scope.debate.data.votability != scope.dentryEntity.vot) {
@@ -1128,37 +1140,85 @@ app.post(['/edit/:debateid','/edit'], function update (req, res, next) {
       } else { callback(null); }
     }, function linkDiscussionToDebateIfNeeded(callback) {
       // if this debate is a discussion of an element from a linked debate ()
-      // TODO make add to the discussions table of the linked-from event, after loading it.
-      // if(linked_from) {
-      //   if(!SCOPE.state.data.discussions) { SCOPE.state.data.discussions = {}; }
-      //   SCOPE.state.data.discussions[commentData[0]] = {href:response.id};
-      // }
-      callback(null);
+      if(scope.dat.data.linkedFrom) {
+        console.log("---------linkedFrom");
+        waterfall([
+        // load the debate being linked form
+        function getLinkedDebate(linkcb) {
+          DS_read(T_DEBATE, scope.dat.data.linkedFrom, function (err, debate) {scope.linkedDebate=debate;linkcb(err)});
+        }, function addDiscussionEntry(linkcb) {
+          var state = scope.linkedDebate;
+          if(!state.data.discussions) { state.data.discussions = {}; }
+          state.data.discussions[scope.dat.data.linkid] = {href:scope.debate.id};
+          linkcb(null);
+        }, function updateLinkedDebate(linkcb) {
+          DS_update(T_DEBATE, dat.data.linkedFrom, scope.linkedDebate, function (err, debate){linkcb(err)})
+        }], function final(err, result){ callback(err); });
+      } else { callback(null); }
+    }, function updatePublicList (cb) {
+      PublicDebates_ForceRefresh(req, res, req.query.pageToken, cb);
+    }, function updateUserList (cb) {
+      DS_uncacheListBy(T_DEBATE_ENTRY, {owner: scope.voter.id}, 50, req.query.pageToken, cb);
     }, function finished(callback) {
       var resultObject = {id:scope.debate.id};
       // log("finished with "+JSON.stringify(resultObject));
-      res.json({id:scope.debate.id});
-      callback(null);
+      finishedCallback(null);
+      // res.json({id:scope.debate.id});
+      // callback(null);
     }
   ], function error(err, result){ async_waterfall_error(err, req, res, result, scope); });
+}
+
+// make sure debates arent duplicated when a debate ID is supplied (as long as the debate exits, and was created by this same user!)
+app.post(['/edit/:did','/edit'], function update (req, res, next) {
+  var gid = ensureLoginGET(req, res); if(gid == null) { return; }
+  var cookies = stringbonus.parseCookies(req.headers.cookie);
+  var debate = saferParse(cookies.debate);
+  var scope = {};
+  if(debate){
+    post_addOrEditDebate(req,res,debate,req.params.did,scope,function (err){ if(!err){ res.json({id:scope.debate.id});} });
+  } else {
+    log("-----------what is going on? ["+req.headers.cookie+"]");
+  }
 });
+
+// TODO when creating a new debate, force the user admin list to uncache/refresh...
 
 app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) {
   var cookies = stringbonus.parseCookies(req.headers.cookie);
-  var dat = saferParse(cookies.rank);
-  var scope = {dat:dat};
-  if(dat.did != req.params.did) {
-    return async_waterfall_error("ERROR D-id in URL ("+req.params.did+") does not match D-id in data ("+dat.did+")", req, res, null, scope); }
-
-  if(dat.dentry) {
-    scope.dentryID = dat.dentry;
-    dat.dentry = null; delete dat.dentry; // remove the debate entry from the vote. it's non-standard!
+  var voteData = saferParse(cookies.rank);
+  var scope = {};
+  if(voteData) {
+console.log("working????");
+    post_addOrEditVote(req,res,voteData,req.params.did,scope,function (err){ if(!err){ res.json({id:scope.vote.id}); } });
+  } else {
+    var newdiscussionData = saferParse(cookies.newdiscussion);
+    if(newdiscussionData) {
+      //post_addOrEditDebate(req,res,newdiscussionData,undefined,scope,function (err){ if(!err){ res.json({id:scope.debate.id});} });
+      END(req,res,"newdiscussion~: "+mvaganov.stringify(newdiscussionData));
+    }
   }
+});
 
+function post_addOrEditVote(req,res,voteData, debateid, scope, finishedCallback) {
+  //var scope = {dat:voteData};
+  scope.dat = voteData; // TODO rename 'scope.dat'
+console.log("A");
+  if(scope.dat.did != debateid) {
+    return async_waterfall_error("ERROR D-id in URL ("+debateid+") does not match D-id in data ("+scope.dat.did+")", req, res, null, scope);
+  }
+console.log("B");
+  if(scope.dat.dentry) {
+    scope.dentryID = scope.dat.dentry;
+    scope.dat.dentry = null; delete scope.dat.dentry; // remove the debate entry from the vote. it's non-standard!
+  }
+console.log("C");
   waterfall([
     function validateSchema(callback) {
-      validationWalk(req,res, dat, validationMap_vote, callback);
+console.log("validateSchema");
+      validationWalk(req,res, scope.dat, validationMap_vote, callback);
     }, function getVoter(callback) {
+console.log("getVoter");
       refreshDBAuthIfNeeded(req,res, function(){
         GetVoter(req, res, function(err,voter){
           if(!voter) { return callback("redirect:"+getForcedLoginUrl(req)); }
@@ -1167,31 +1227,37 @@ app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) 
         });
       });
     }, function ensureOneMinuteBetweenVotes(callback) {
+console.log("ensureOneMinute");
       const MIN_MS_BETWEEN_VOTES = 60 * 1000;
       // console.log("vote voter "+scope.voter.name+" "+scope.voter.id+" "+scope.voter.email);
       ensureTimeBetween("vote"+scope.voter.id, "vote", MIN_MS_BETWEEN_VOTES, callback);
-    }, function getEntry(callback) { 
+    }, function getEntry(callback) {
+console.log("getEntry");
       if(scope.dentryID) {
         DS_read(T_DEBATE_ENTRY, scope.dentryID, function (err, entity) {scope.dentry=entity; callback(err); });
       } else {
-        GetDebateEntry(req.params.did, function(err, entity) { scope.dentry=entity; callback(err); });
+        GetDebateEntry(debateid, function(err, entity) { scope.dentry=entity; callback(err); });
       }
     }, function updateTheVote(callback) {
+console.log("updateTheVote");
       if(scope.dentry.vot == 'closed') { return END(req,res,"voting closed."); }
-      // log("UPDATING THE VOTE "+JSON.stringify(dat));
+      // log("UPDATING THE VOTE "+JSON.stringify(scope.dat));
       scope.isVotex = (req.url.indexOf("votex") >= 0 && scope.voter.id == scope.dentry.owner);
-      if(!scope.isVotex && dat.data.ranks) { return callback("ERROR only debate owners can submit multiple votes."); }
-      if(dat.vid != scope.voter.id) { return callback("ERROR user submitting vote for someone other than themselves"); }
-      DS_update(T_VOTE, dat.id, dat, function (err, entity) { scope.vote=entity; callback(err); });
+      if(!scope.isVotex && scope.dat.data.ranks) { return callback("ERROR only debate owners can submit multiple votes."); }
+      if(scope.dat.vid != scope.voter.id) { return callback("ERROR user submitting vote for someone other than themselves"); }
+      DS_update(T_VOTE, scope.dat.id, scope.dat, function (err, entity) { scope.vote=entity; callback(err); });
     }, function addUserCandidatesIfNeeded(callback) {
-      if(dat.data.addedCandidate) {
+console.log("addUserCandidates");
+      if(scope.dat.data.addedCandidate) {
         var aList = scope.dat.data.addedCandidate;
         // log("adding candidate! "+aList);
         waterfall([
           function getTheDebate(cb) {
+console.log("getTheDebate");
             // get the debate
             DS_read(T_DEBATE, scope.dat.did, function(err, debate){scope.debate=debate;cb(null);});
           }, function updateAndSubmitDebateIfNeeded(cb) {
+console.log("updateAndSubmitDebateIfNeeded");
             var changeMade = false;
             // if user candidates are not allowed
             if(!scope.debate.data.userSuggestion) {
@@ -1258,29 +1324,28 @@ app.post(['/vote/:did','/votex/:did','/vote'], function update (req, res, next) 
           }
         ], callback);
       } else { callback(null); }
-    }, function finishedWithVoteSubmission(callback) {
-      // log("VOTE IS ::::: "+JSON.stringify(scope.vote));
-      res.json({id:scope.vote.id});
-      DS_uncacheListBy(T_VOTE, {vid:scope.voter.id, 'did':dat.did}, 1, null, function(err){ 
-      // DS_read(T_VOTE, dat.id, function(err, voteInDb){
-      // log("VOTE IS ::::: "+JSON.stringify(voteInDb));
-        DS_uncacheListBy(T_VOTE, {vid:scope.voter.id,SORTBY:"modified D"},50,req.query.pageToken, function(err){
-          callback(null);
-        });
-      });
     }, function markLastVote(callback) {
+console.log("markLastVote");
       var lastTime = scope.dentry.lastvote;
       scope.dentry.lastvote = Date.now();
       // log("UPDATING THE DEBATE ENTRY: "+scope.dentry.lastvote+" vs "+lastTime);
       DS_update(T_DEBATE_ENTRY, scope.dentry.id, scope.dentry, function(err, entity){callback(null);});
+    }, function finishedWithVoteSubmission(callback) {
+      // log("VOTE IS ::::: "+JSON.stringify(scope.vote));
+      DS_uncacheListBy(T_VOTE, {vid:scope.voter.id, 'did':scope.dat.did}, 1, null, function(err){
+      // DS_read(T_VOTE, scope.dat.id, function(err, voteInDb){
+      // log("VOTE IS ::::: "+JSON.stringify(voteInDb));
+        DS_uncacheListBy(T_VOTE, {vid:scope.voter.id,SORTBY:"modified D"},50,req.query.pageToken, function(err){
+          //callback(null);
+          finishedCallback(null);
+        });
+      });
     }
   ], function error(err, result){ async_waterfall_error(err, req, res, result, scope); });
-});
+}
 
 // Redirect root
-app.get('/', function(req, res) {
-  res.redirect('/debates');
-});
+app.get('/', function(req, res) { res.redirect('/debates'); });
 
 var t_JSON = 'JSONscript', t_NUM = 'number', t_STR = 'string', t_UNIQUE = 'unique';
 var schemaTypeConversionToDatastore = {};
@@ -1354,6 +1419,9 @@ function validationWalk_recur(req,res,obj, variable, validationMap, path, callba
           return cb("expected '"+path+"' to be an object, not "+JSON.stringify(variable));
         }
         var alteredPath = path.concat("");
+        if(!variable) {
+          return cb("no data for '"+path+"'");
+        }
         var keys = Object.keys(variable);
         var keyIndex = 0;
         // for(var k in variable) {
@@ -1368,7 +1436,7 @@ function validationWalk_recur(req,res,obj, variable, validationMap, path, callba
           validationWalk_recur(req,res,obj, variable[k], validator, alteredPath, function(err) {
             if(err) { return cb(err); }
             keyIndex++;
-            if(keyIndex < keys.length) { 
+            if(keyIndex < keys.length) {
               if(keyIndex % 4 == 0) { return setTimeout(iterateAcrossKeys, 0); } // prevent stack overflow
               return iterateAcrossKeys();
             }
@@ -1394,6 +1462,14 @@ function validationWalk_recur(req,res,obj, variable, validationMap, path, callba
     }], function error(err,result) { async_waterfall_error(err,req,res,result,scope); }
   );
 }
+function getElementWithPath(structure, elementPath, errcb) {
+  var cursor = structure, i = 0;
+  while(cursor && i < elementPath.length) {
+    cursor = cursor[elementPath[i]];
+    i++;
+  }
+  return cursor;
+}
 function v_optional(varPath, variable, dat, cb) { return cb(null); }
 function v_required(varPath, variable, dat, cb) { if(!variable) { return cb("missing element: "+varPath); } return cb(null); }
 function v_invalid(varPath, variable, dat, cb) { cb("invalid data: "+varPath); }
@@ -1402,13 +1478,7 @@ function v_requiredOneOfThese(varPath, variable, dat, alternates, cb) {
   if(!variable) {
     var haveOther = false;
     for(var alt=0;alt<alternates.length && !haveOther;++alt) {
-      var cursor = dat;
-      var i = 0;
-      while(cursor && i < alternates[alt].length) {
-        cursor = cursor[alternates[i]];
-        i++;
-      }
-      haveOther = (cursor && i == alternates[alt].length);
+      haveOther = getElementWithPath(dat, alternates[alt]);
     }
     if(!haveOther) {
       return cb("missing ["+varPath+"], or optionally, one of these: ["+alternates.join("], [")+"]")
@@ -1427,7 +1497,11 @@ function v_oneOf(varPath, variable, dat, required, validOptionList, errcb) {
   }
   errcb(null);
 }
-function v_optionalEmailList(varPath, variable, dat, cb) { 
+function v_requiredIf(varPath, variable, dat, requiredPairing, errcb) {
+  if(!variable && getElementWithPath(dat, requiredPairing)) { return errcb(varPath+" required to pair with "+requiredPairing); }
+  else { errcb(null); }
+}
+function v_optionalEmailList(varPath, variable, dat, cb) {
   if(variable) {
     for(var i=0;i<variable.length;++i) {
       // TODO validate that variable[i] is a valid e-mail address
@@ -1439,7 +1513,7 @@ function v_optionalEmailList(varPath, variable, dat, cb) {
       if(atSign < 0 || dot < 0) { return cb(JSON.stringify(variable[i])+" is not a valid e-mail address"); }
     }
   }
-  return cb(null); 
+  return cb(null);
 }
 var validationMap_debate = {
   'undefined': v_invalid,
@@ -1462,12 +1536,10 @@ var validationMap_debate = {
     candidateOrder: function corder(path,v,d,ecb){v_oneOf(path,v,d,false,['','fixed','random','result'], ecb)},
     userSuggestion: function usrsug(path,v,d,ecb){v_oneOf(path,v,d,false,['','once','open'], ecb)},
     userDiscussion: function usrdis(path,v,d,ecb){v_oneOf(path,v,d,false,['','disabled','open'], ecb)},
-    linkedFrom: function linkedFrom(varPath, variable, dat, errorcallback) {
+    linkid: function link_id(path,v,d,ecb){v_requiredIf(path,v,d,['data','linkedFrom'], ecb)},
+    linkedFrom: function linkedFrom(varPath, variable, dataSource, errorcallback) {
       if(variable) {
         // TODO validate existing debate ID
-        scope.linkedFrom = variable;
-        dat.linkedFrom = undefined;
-        delete dat.linkedFrom;
       }
       return true;
     }
@@ -1511,14 +1583,23 @@ var validationMap_category = {
 };
 // validationMap_category['zubalubadubdub'] = validationMap_category.arraytest;
 // console.log(JSON.stringify(validationMap_category, null, 2));
-// console.log("------");
-// var stringified = mvaganov.stringify(validationMap_category, null, 2);
-// console.log(stringified);
-// console.log("---------");
-// var objected = mvaganov.parse(stringified);
-// console.log("---------");
+console.log("---------");
+var stringified = mvaganov.stringify(validationMap_category, null, 2);
+console.log(stringified);
+console.log("--------- ---------");
+var objected = mvaganov.parse(stringified);
+console.log("--------- --------- ---------");
 // console.log(JSON.stringify(objected, null, 2));
-// console.log(mvaganov.stringify(objected, null, 2));
+console.log(mvaganov.stringify(objected, null, 2));
+
+function blarg(a,b,c){
+  this.a = a;
+  this.b = b;
+  console.log("@@@@@@@@@@@@@@");
+  console.log(arguments);
+  console.log(this);
+}
+var t = new blarg(1,2,3,undefined,4,5,6);
 ////////////////////////////////////////////////////////////////////////////////
 
 var nonIndexFilters = {};
@@ -1683,7 +1764,7 @@ function DS_buildListByQuery(kind, keyFilters, limit, token) {
       if(desc) { sortProp = sorting[i].substring(0, sorting[i].length-2); }
       log("DS_listBy SORTBY: '"+sortProp+"'"+((desc)?" (descending)":""));
       if(desc) { q = q.order(sortProp, { descending: true });
-      } else { 
+      } else {
         q = q.order(sortProp);
       }
     }
@@ -1707,7 +1788,7 @@ function DS_listBy (kind, keyFilters, limit, token, cb, cachedLifetime) {
     else {
       DS_ensureSession(function (tryAgainOnDatabaseTimeout) {
         ds.runQuery(q, function (err, entities, nextQuery) {
-          if (err) { 
+          if (err) {
             if(!tryAgainOnDatabaseTimeout(err)) {
               log("DS_listBy runQuery: "+err);
               var errorMsg = "DS listBy "+qid+" ";
@@ -1749,7 +1830,7 @@ function DS_update (kind, id, data, cb) {
   log("DS_update "+kind+" "+id);
   var key;
   if (id) { key = ds.key([kind, parseInt(id, 10)]);
-  } else { 
+  } else {
     if(schema[kind].created) { data.created = Date.now(); }
     key = ds.key(kind);
   }
@@ -1762,7 +1843,7 @@ function DS_update (kind, id, data, cb) {
       ds.save( entity, function (err) {
         data.id = entity.key.id;
         if(schema[kind].id == t_STR && data.id) { data.id = data.id.toString(); }
-        if(err) { 
+        if(err) {
           if(!tryAgainOnDatabaseTimeout(err)) {
             var errorMsg = "DS update "+qid+" ";
             if(typeof err === 'string') { errorMsg += err;}
@@ -1801,7 +1882,7 @@ function DS_read (kind, id, cb, cachedLifetime) {
     }
   });
 }
-function DS_delete (kind, id, cb) { 
+function DS_delete (kind, id, cb) {
   log("DS_delete "+kind+" "+id);
   var qid = DS_UpdateIdString(kind,id);
   DS_setCached(qid, null, function (err){
@@ -1819,7 +1900,15 @@ function DS_delete (kind, id, cb) {
 }
 
 // Basic 404 handler
-app.use(function (req, res) { res.status(404).send('Not Found'); });
+app.use(function (req, res) {
+  var finalRedirect = redirectTable[req.url];
+  if(finalRedirect) {
+    console.log("redirecting '"+req.url+"' to '"+finalRedirect+"'");
+    res.redirect(finalRedirect);
+  } else {
+    res.status(404).send('Not Found');
+  }
+});
 
 // Basic error handler
 app.use(function (err, req, res, next) {
